@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { ObjectId } from "npm:mongodb";
 import { AsignaturasCollection, PersonasCollection, TitulacionesCollection } from "./db/connection.ts";
 import { TFM, TFM_alumno_DB, TFM_DB } from "./types/Asignaturas/TFM.ts";
 import { Short_Coordinador_DB, Transform_Coordinador } from "./utilities/Personas/utils_Coordinadores.ts";
@@ -3678,4 +3678,11 @@ const handler = async (req: Request): Promise<Response> => {
 	);
 };
 
-Deno.serve({ port: 4000 }, handler);
+
+Deno.serve(
+	{
+		port: Number(Deno.env.get("PORT")) || 4000,
+		hostname: "0.0.0.0",
+	},
+	handler
+);
