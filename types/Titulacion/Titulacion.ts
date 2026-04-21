@@ -1,4 +1,4 @@
-import { ObjectId, OptionalId } from "mongodb";
+import { ObjectId, OptionalId } from "npm:mongodb";
 import { Asignatura_Short } from "../Asignaturas/Asignatura.ts";
 import { TFM_Block_Short } from "../Asignaturas/TFM.ts";
 import { Administrativo_Short } from "../Personas/Administrativo.ts";

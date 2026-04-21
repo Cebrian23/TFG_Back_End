@@ -1,4 +1,4 @@
-import { OptionalId } from "mongodb";
+import { OptionalId } from "npm:mongodb";
 import { Asignatura_alumno, Asignatura_alumno_DB } from "../Asignaturas/Asignatura.ts";
 import { TFM_alumno, TFM_alumno_DB } from "../Asignaturas/TFM.ts";
 

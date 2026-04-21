@@ -1,4 +1,4 @@
-import { OptionalId } from "mongodb"
+import { OptionalId } from "npm:mongodb"
 
 export type ProfesorDB = OptionalId<{
     nombre: string;

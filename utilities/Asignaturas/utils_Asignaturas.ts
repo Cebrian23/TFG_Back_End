@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { ObjectId } from "npm:mongodb";
 import { AsignaturasCollection, PersonasCollection } from "../../db/connection.ts";
 import { AlumnoDB, Asignatura_curso_DB, Asignatura_curso_short, Asignatura_Short, AsignaturaDB } from "../../types/Asignaturas/Asignatura.ts";
 import { Coordinador_Short } from "../../types/Personas/Coordinador.ts";

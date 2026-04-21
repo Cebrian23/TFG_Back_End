@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { MongoClient } from "npm:mongodb";
 import { ProfesorDB } from "../types/Personas/Profesor.ts";
 import { CoordinadorDB } from "../types/Personas/Coordinador.ts";
 import { EstudianteDB } from "../types/Personas/Estudiante.ts";

@@ -1,4 +1,4 @@
-import { OptionalId } from "mongodb";
+import { OptionalId } from "npm:mongodb";
 import { Titulacion_Short } from "../Titulacion/Titulacion.ts";
 
 export type AdministrativoDB = OptionalId<{
