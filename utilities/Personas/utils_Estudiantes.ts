@@ -2,7 +2,7 @@ import { Asignatura_alumno, Asignatura_alumno_DB } from "../../types/Asignaturas
 import { TFM_alumno, TFM_alumno_DB } from "../../types/Asignaturas/TFM.ts";
 import { Estudiante_Short, EstudianteDB } from "../../types/Personas/Estudiante.ts";
 import { AsignaturasCollection, PersonasCollection } from "../../db/connection.ts";
-import { ObjectId } from "mongodb";
+import { ObjectId } from "npm:mongodb";
 
 export const Transform_Estudiante = (estudiante: EstudianteDB): Response => {
     const asignaturas_cursadas: (Asignatura_alumno | TFM_alumno)[] = [];
