@@ -1,11 +1,11 @@
 import { ObjectId } from "npm:mongodb";
 import { AsignaturasCollection, PersonasCollection } from "../../db/connection.ts";
-import { AlumnoDB, Asignatura_curso_DB, Asignatura_curso_short, Asignatura_Short, AsignaturaDB } from "../../types/Asignaturas/Asignatura.ts";
+import { Alumno, AlumnoDB, Asignatura_curso_DB, Asignatura_curso_short, Asignatura_Short, AsignaturaDB } from "../../types/Asignaturas/Asignatura.ts";
 import { Coordinador_Short } from "../../types/Personas/Coordinador.ts";
 import { Estudiante_Short, EstudianteDB } from "../../types/Personas/Estudiante.ts";
 import { Profesor_Short } from "../../types/Personas/Profesor.ts";
 import { Short_Coordinador_DB } from "../Personas/utils_Coordinadores.ts";
-import { Short_Estudiante_DB } from "../Personas/utils_Estudiantes.ts";
+import { Short_Estudiante_DB, Short_Estudiante_ID } from "../Personas/utils_Estudiantes.ts";
 import { Short_Profesor_DB } from "../Personas/utils_Profesores.ts";
 
 export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Response> => {
@@ -67,7 +67,7 @@ export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Re
 
     const estudiantes_ordinaria_id = curso_in.alumnos_ordinaria.map((alumno) => alumno.estudiante);
     const estudiantes_ordinaria = await PersonasCollection.find({_id: {$in: estudiantes_ordinaria_id}}).toArray();
-    const alumnos_ordinaria: AlumnoDB[] = [];
+    const alumnos_ordinaria: Alumno[] = [];
 
     if(estudiantes_ordinaria_id.length !== estudiantes_ordinaria.length){
         return new Response(
@@ -78,10 +78,16 @@ export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Re
         );
     }
 
-    curso_in.alumnos_ordinaria.forEach((alumno) => {
+    const alumno_ordinaria_error = curso_in.alumnos_ordinaria.find(async (alumno) => {
+        const response = await Short_Estudiante_ID(alumno.estudiante);
+
+        if(response.status !== 200){
+            return alumno;
+        }
+
         alumnos_ordinaria.push(
             {
-                estudiante: alumno.estudiante,
+                estudiante: await response.json(),
                 convocatoria_name: alumno.convocatoria_name,
                 convocatoria_num: alumno.convocatoria_num,
                 nota: alumno.nota,
@@ -90,9 +96,18 @@ export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Re
         );
     });
 
+    if(alumno_ordinaria_error !== undefined){
+        return new Response(
+            JSON.stringify({error: "Alumno en convocatoria ordinaria no encontrado"}),
+            {
+                status: 404,
+            }
+        );
+    }
+
     const estudiantes_extraordinaria_id = curso_in.alumnos_extraordinaria.map((alumno) => alumno.estudiante);
     const estudiantes_extraordinaria = await PersonasCollection.find({_id: {$in: estudiantes_extraordinaria_id}}).toArray();
-    const alumnos_extraordinaria: AlumnoDB[] = [];
+    const alumnos_extraordinaria: Alumno[] = [];
 
     if(estudiantes_extraordinaria.length !== estudiantes_extraordinaria_id.length){
         return new Response(
@@ -103,10 +118,15 @@ export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Re
         );
     }
     
-    curso_in.alumnos_extraordinaria.forEach((alumno) => {
+    const alumno_extraordinaria_error = curso_in.alumnos_extraordinaria.find(async (alumno) => {
+        const response = await Short_Estudiante_ID(alumno.estudiante);
+
+        if(response.status !== 200){
+            return alumno;
+        }
         alumnos_extraordinaria.push(
             {
-                estudiante: alumno.estudiante,
+                estudiante: await response.json(),
                 convocatoria_name: alumno.convocatoria_name,
                 convocatoria_num: alumno.convocatoria_num,
                 nota: alumno.nota,
@@ -114,6 +134,15 @@ export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Re
             }
         );
     });
+
+    if(alumno_extraordinaria_error !== undefined){
+        return new Response(
+            JSON.stringify({error: "Alumno en convocatoria ordinaria no encontrado"}),
+            {
+                status: 404,
+            }
+        );
+    }
 
     return new Response(
         JSON.stringify(

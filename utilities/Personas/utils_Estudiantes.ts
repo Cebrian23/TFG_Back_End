@@ -1,7 +1,8 @@
 import { Asignatura_alumno, Asignatura_alumno_DB } from "../../types/Asignaturas/Asignatura.ts";
 import { TFM_alumno, TFM_alumno_DB } from "../../types/Asignaturas/TFM.ts";
 import { Estudiante_Short, EstudianteDB } from "../../types/Personas/Estudiante.ts";
-import { AsignaturasCollection } from "../../db/connection.ts";
+import { AsignaturasCollection, PersonasCollection } from "../../db/connection.ts";
+import { ObjectId } from "mongodb";
 
 export const Transform_Estudiante = (estudiante: EstudianteDB): Response => {
     const asignaturas_cursadas: (Asignatura_alumno | TFM_alumno)[] = [];
@@ -342,4 +343,34 @@ export const Short_Estudiante_DB = (estudiante: EstudianteDB): Estudiante_Short 
         email: estudiante.email,
         rol: "Estudiante",
     }
+}
+
+export const Short_Estudiante_ID = async (estudiante: ObjectId): Promise<Response> => {
+    const estudiante_exists = await PersonasCollection.findOne({_id: estudiante});
+
+    if(!estudiante_exists){
+        return new Response(
+            JSON.stringify({error: "Estudiante no encontrado"}),
+            {
+                status: 404,
+            }
+        );
+    }
+
+    return new Response(
+        JSON.stringify(
+            {
+                id: estudiante_exists._id!.toString(),
+                nombre: estudiante_exists.nombre,
+                apellido_1: estudiante_exists.apellido_1,
+                apellido_2: estudiante_exists.apellido_2,
+                DNI: estudiante_exists.DNI,
+                email: estudiante_exists.email,
+                rol: "Estudiante",
+            }
+        ),
+        {
+            status: 200,
+        }
+    )
 }
