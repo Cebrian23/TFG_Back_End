@@ -67,7 +67,6 @@ export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Re
 
     const estudiantes_ordinaria_id = curso_in.alumnos_ordinaria.map((alumno) => alumno.estudiante);
     const estudiantes_ordinaria = await PersonasCollection.find({_id: {$in: estudiantes_ordinaria_id}}).toArray();
-    const alumnos_ordinaria: Alumno[] = [];
 
     if(estudiantes_ordinaria_id.length !== estudiantes_ordinaria.length){
         return new Response(
@@ -78,36 +77,64 @@ export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Re
         );
     }
 
-    const alumno_ordinaria_error = curso_in.alumnos_ordinaria.find(async (alumno) => {
+    const alumnos_ordinaria_response: Response[] = await Promise.all(curso_in.alumnos_ordinaria.map(async (alumno) => {
         const response = await Short_Estudiante_ID(alumno.estudiante);
-
+        
         if(response.status !== 200){
-            return alumno;
+            return new Response(
+                JSON.stringify({error: await response.json()}),
+                {
+                    status: response.status,
+                }
+            );
         }
 
-        alumnos_ordinaria.push(
+        return new Response(
+            JSON.stringify(
+                {
+                    estudiante: await response.json(),
+                    convocatoria_name: alumno.convocatoria_name,
+                    convocatoria_num: alumno.convocatoria_num,
+                    nota: alumno.nota,
+                    tipo: alumno.tipo,
+                }
+            ),
             {
-                estudiante: await response.json(),
-                convocatoria_name: alumno.convocatoria_name,
-                convocatoria_num: alumno.convocatoria_num,
-                nota: alumno.nota,
-                tipo: alumno.tipo,
+                status: response.status,
             }
         );
+    }));
+
+    const ordinaria_error = alumnos_ordinaria_response.find((response) => {
+        if(response.status !== 200){
+            return response;
+        }
     });
 
-    if(alumno_ordinaria_error !== undefined){
+    if(ordinaria_error !== undefined){
         return new Response(
-            JSON.stringify({error: "Alumno en convocatoria ordinaria no encontrado"}),
+            JSON.stringify(await ordinaria_error.json()),
+            {
+                status: ordinaria_error.status,
+            }
+        );
+    }
+
+    const alumnos_ordinaria: Alumno[] = await Promise.all(alumnos_ordinaria_response.map(async (response) => {
+        return await response.json();
+    }));
+
+    if(curso_in.alumnos_ordinaria.length !== alumnos_ordinaria.length){
+        return new Response(
+            JSON.stringify({error: `${curso_in.alumnos_ordinaria.length - alumnos_ordinaria.length} alumnos en ordinaria no encontrados`}),
             {
                 status: 404,
             }
         );
     }
-
+    
     const estudiantes_extraordinaria_id = curso_in.alumnos_extraordinaria.map((alumno) => alumno.estudiante);
     const estudiantes_extraordinaria = await PersonasCollection.find({_id: {$in: estudiantes_extraordinaria_id}}).toArray();
-    const alumnos_extraordinaria: Alumno[] = [];
 
     if(estudiantes_extraordinaria.length !== estudiantes_extraordinaria_id.length){
         return new Response(
@@ -118,26 +145,56 @@ export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Re
         );
     }
     
-    const alumno_extraordinaria_error = curso_in.alumnos_extraordinaria.find(async (alumno) => {
+    const alumnos_extraordinaria_response: Response[] = await Promise.all(curso_in.alumnos_extraordinaria.map(async (alumno) => {
         const response = await Short_Estudiante_ID(alumno.estudiante);
-
+        
         if(response.status !== 200){
-            return alumno;
+            return new Response(
+                JSON.stringify({error: await response.json()}),
+                {
+                    status: response.status,
+                }
+            );
         }
-        alumnos_extraordinaria.push(
+
+        return new Response(
+            JSON.stringify(
+                {
+                    estudiante: await response.json(),
+                    convocatoria_name: alumno.convocatoria_name,
+                    convocatoria_num: alumno.convocatoria_num,
+                    nota: alumno.nota,
+                    tipo: alumno.tipo,
+                }
+            ),
             {
-                estudiante: await response.json(),
-                convocatoria_name: alumno.convocatoria_name,
-                convocatoria_num: alumno.convocatoria_num,
-                nota: alumno.nota,
-                tipo: alumno.tipo,
+                status: response.status,
             }
         );
+    }));
+
+    const extraordinaria_error = alumnos_extraordinaria_response.find((response) => {
+        if(response.status !== 200){
+            return response;
+        }
     });
 
-    if(alumno_extraordinaria_error !== undefined){
+    if(extraordinaria_error !== undefined){
         return new Response(
-            JSON.stringify({error: "Alumno en convocatoria ordinaria no encontrado"}),
+            JSON.stringify(await extraordinaria_error.json()),
+            {
+                status: extraordinaria_error.status,
+            }
+        );
+    }
+
+    const alumnos_extraordinaria: Alumno[] = await Promise.all(alumnos_extraordinaria_response.map(async (response) => {
+        return await response.json();
+    }));
+
+    if(curso_in.alumnos_extraordinaria.length !== alumnos_extraordinaria.length){
+        return new Response(
+            JSON.stringify({error: `${curso_in.alumnos_extraordinaria.length - alumnos_extraordinaria.length} alumnos en extraordinaria no encontrados`}),
             {
                 status: 404,
             }
