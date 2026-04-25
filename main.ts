@@ -627,22 +627,24 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             }));
 
-            data.forEach((data_info) => {
+            const data_error = data.find((data_info) => {
                 if(data_info.tipo === "error"){
-                    const status = data_info.status;
-
-                    return new Response(
-                        JSON.stringify(data_info.error),
-                        {
-                            status: status,
-                            headers: headers,
-                        }
-                    );
+                    return data_info;
                 }
                 else{
                     asignatura_curso.push(data_info as Asignatura_curso);
                 }
             });
+
+            if(data_error !== undefined && data_error.tipo === "error"){
+                return new Response(
+                    JSON.stringify(data_error.error),
+                    {
+                        status: data_error.status,
+                        headers: headers,
+                    }
+                );
+            }
 
             if(asignatura.cursos_academicos.length !== asignatura_curso.length){
                 return new Response(
@@ -653,7 +655,7 @@ const handler = async (req: Request): Promise<Response> => {
                     }
                 );
             }
-
+            
             return new Response(
                 JSON.stringify(
                     {
