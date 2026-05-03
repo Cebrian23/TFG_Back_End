@@ -13,7 +13,7 @@ import { Validate_Phone } from "./utilities/Validaciones/Validate_Phone.ts";
 import { Validate_Email } from "./utilities/Validaciones/Validate_Email.ts";
 import { Persona_To_Short_DB } from "./utilities/Personas/utils_Persona.ts";
 import { Transform_TFM } from "./utilities/Asignaturas/utils_TFM.ts";
-import { Asignatura_curso_DB, Asignatura_curso_docs_short, Asignatura_curso, AlumnoDB, Asignatura_alumno_DB } from "./types/Asignaturas/Asignatura.ts";
+import { Asignatura_curso_DB, Asignatura_curso_docs_short, Asignatura_curso, AlumnoDB, Asignatura_alumno_DB, AsignaturaDB } from "./types/Asignaturas/Asignatura.ts";
 import { Short_Asignatura_Curso_Docs_DB, Transform_Curso, Transform_Alumno } from "./utilities/Asignaturas/utils_Asignaturas.ts";
 import { Short_Titulacion, Transform_Titulacion } from "./utilities/Titulacion/utils_Titulacion.ts";
 import { Error_info } from "./types/Messages/Errors.ts";
@@ -2502,10 +2502,11 @@ const handler = async (req: Request): Promise<Response> => {
         }*/
         else if(path === "/curso/convocatoria/notas"){
             const data = await req.json();
+            //console.log(data);
             const asignatura = data.asignatura;
             const curso = data.curso;
-            const convocatoria = data.curso;
-            const notas: {alumno: string, nota: "Sin calificar" | "No presentado" | number} | undefined = data.notas;
+            const convocatoria = data.convocatoria;
+            const notas: {alumno: string, nota: "Sin calificar" | "No presentado" | number}[] | undefined = data.notas;
 
             if(!asignatura || !curso || !convocatoria || !notas){
                 return new Response(
@@ -2554,13 +2555,314 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
-            if(convocatoria === "Ordinaria"){}
-            else if(convocatoria === "Extraordinaria"){}
+            const notasError = notas.find((dato) => {
+                if(dato.nota === "Sin calificar"){
+                    return dato;
+                }
+            });
+
+            if(notasError !== undefined){
+                return new Response(
+                    JSON.stringify({error: "Hay al menos un alumno al que no le han calidficado"}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const alumnosNotas = notas.map((nota) => new ObjectId(nota.alumno));
+
+            const alumnosExists = await PersonasCollection.find({_id: {$in: alumnosNotas}}).toArray();
+
+            if(alumnosNotas.length !== alumnosExists.length){
+                return new Response(
+                    JSON.stringify({error: `${alumnosNotas.length - alumnosExists.length} alumnos no encontrados`}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const alumnoError = alumnosExists.find((alumno) => {
+                if(alumno.rol !== "Estudiante"){
+                    return alumno;
+                }
+            });
+
+            if(alumnoError !== undefined){
+                return new Response(
+                    JSON.stringify({error: `Se ha encontrado un ${alumnoError.rol.toLowerCase()} entre los alumnos evaluados`}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const alumnosConvocatoria: ObjectId[] = [];
+            const alumnosCalificados: ObjectId[] = [];
+
+            const alumnosUpt: {
+                alumno: ObjectId,
+                calificacion: Asignatura_alumno_DB
+            }[] = [];
+
+            const curso_upt: Asignatura_curso_DB = {
+                id: curso_exists.id,
+                curso_academico: curso_exists.curso_academico,
+                profesores: curso_exists.profesores,
+                estudiantes: curso_exists.estudiantes,
+                alumnos_ordinaria: [],
+                alumnos_extraordinaria: [],
+                tipo: curso_exists.tipo,
+            }
+
+            if(convocatoria === "Ordinaria"){
+                curso_exists.alumnos_ordinaria.forEach((alumno) => {
+                    alumnosConvocatoria.push(alumno.estudiante);
+                });
+
+                alumnosConvocatoria.forEach((alumno1) => {
+                    alumnosNotas.forEach((alumno2) => {
+                        if(alumno1.toString() === alumno2.toString()){
+                            alumnosCalificados.push(alumno1);
+                        }
+                    });
+                });
+
+                if(alumnosNotas.length !== alumnosCalificados.length){
+                    return new Response(
+                        JSON.stringify({error: `${alumnosNotas.length - alumnosCalificados.length} estudiantes no encontrados`}),
+                        {
+                            status: 404,
+                            headers: headers,
+                        }
+                    );
+                }
+
+                curso_exists.alumnos_ordinaria.forEach((alumno) => {
+                    notas.forEach((dato) => {
+                        if(alumno.estudiante.toString() === dato.alumno){
+                            alumnosUpt.push(
+                                {
+                                    alumno: alumno.estudiante,
+                                    calificacion: {
+                                        _id: new ObjectId(),
+                                        asignatura: asignatura_exists._id,
+                                        convocatoria_num: alumno.convocatoria_num,
+                                        convocatoria_name: alumno.convocatoria_name,
+                                        curso: curso_exists.curso_academico,
+                                        nota: dato.nota,
+                                        tipo: "Asignatura",
+                                    }
+                                }
+                            );
+
+                            curso_upt.alumnos_ordinaria.push(
+                                {
+                                    estudiante: alumno.estudiante,
+                                    convocatoria_num: alumno.convocatoria_num,
+                                    convocatoria_name: alumno.convocatoria_name,
+                                    nota: dato.nota,
+                                    tipo: alumno.tipo,
+                                }
+                            );
+
+                            if(Number(dato.nota) < 5.0){
+                                curso_upt.alumnos_extraordinaria.push(
+                                    {
+                                        estudiante: alumno.estudiante,
+                                        convocatoria_num: `${Number(alumno.convocatoria_num.split("º")[0])+1}º`,
+                                        convocatoria_name: "Extraordinaria",
+                                        nota: "Sin calificar",
+                                        tipo: alumno.tipo,
+                                    }
+                                );
+                            }
+                        }
+                    });
+                });
+
+                curso_upt.ordinaria_firmada = true;
+                curso_upt.extraordinaria_firmada = false;
+            }
+            else if(convocatoria === "Extraordinaria"){
+                curso_exists.alumnos_extraordinaria.forEach((alumno) => {
+                    alumnosConvocatoria.push(alumno.estudiante);
+                });
+
+                alumnosConvocatoria.forEach((alumno1) => {
+                    alumnosNotas.forEach((alumno2) => {
+                        if(alumno1 === alumno2){
+                            alumnosCalificados.push(alumno1);
+                        }
+                    });
+                });
+
+                if(alumnosNotas.length !== alumnosCalificados.length){
+                    return new Response(
+                        JSON.stringify({error: `${alumnosNotas.length - alumnosCalificados.length} estudiantes no encontrados`}),
+                        {
+                            status: 404,
+                            headers: headers,
+                        }
+                    );
+                }
+
+                curso_exists.alumnos_ordinaria.forEach((alumno) => {
+                    curso_upt.alumnos_ordinaria.push(alumno);
+                });
+
+                curso_exists.alumnos_extraordinaria.forEach((alumno) => {
+                    notas.forEach((dato) => {
+                        if(alumno.estudiante.toString() === dato.alumno){
+                            alumnosUpt.push(
+                                {
+                                    alumno: alumno.estudiante,
+                                    calificacion: {
+                                        _id: new ObjectId(),
+                                        asignatura: asignatura_exists._id,
+                                        convocatoria_num: alumno.convocatoria_num,
+                                        convocatoria_name: alumno.convocatoria_name,
+                                        curso: curso_exists.curso_academico,
+                                        nota: dato.nota,
+                                        tipo: "Asignatura",
+                                    }
+                                }
+                            );
+
+                            curso_upt.alumnos_extraordinaria.push(
+                                {
+                                    estudiante: alumno.estudiante,
+                                    convocatoria_num: alumno.convocatoria_num,
+                                    convocatoria_name: alumno.convocatoria_name,
+                                    nota: dato.nota,
+                                    tipo: alumno.tipo,
+                                }
+                            );
+                        }
+                    });
+                });
+                
+                curso_upt.ordinaria_firmada = true;
+                curso_upt.extraordinaria_firmada = true;
+            }
+
+            const alumnosMap = await Promise.all (alumnosUpt.map(async (alumno) => {
+                const alumno_exists = await PersonasCollection.findOne({_id: alumno.alumno});
+
+                if(!alumno_exists){
+                    return new Response(
+                        JSON.stringify({error: "Alumno no encontrado"}),
+                        {
+                            status: 404,
+                        }
+                    );
+                }
+                else if(alumno_exists.rol !== "Estudiante"){
+                    return new Response(
+                        JSON.stringify({error: `Se ha encontrado un ${alumno_exists.rol.toLowerCase()} en vez de a un estudiante`}),
+                        {
+                            status: 406,
+                        }
+                    );
+                }
+
+                alumno_exists.asignaturas_cursadas.push(alumno.calificacion);
+
+                if(alumno.calificacion.nota !== "No presentado" && Number(alumno.calificacion.nota) >= 5.0){
+                    alumno_exists.asignaturas_aprobadas.push(alumno.calificacion);
+                }
+
+                const { modifiedCount } = await PersonasCollection.updateOne(
+                    {
+                        _id: alumno.alumno
+                    },
+                    {
+                        $set: {
+                            asignaturas_aprobadas: alumno_exists.asignaturas_aprobadas,
+                            asignaturas_cursadas: alumno_exists.asignaturas_cursadas,
+                        }
+                    }
+                );
+
+                if(modifiedCount === 0){
+                    return new Response(
+                        JSON.stringify({error: "No se ha encontrado al alumno para actualizar la nota"}),
+                        {
+                            status: 404,
+                        }
+                    );
+                }
+
+                return new Response(
+                    JSON.stringify({message: "Actualización exitosa"}),
+                    {
+                        status: 200,
+                    }
+                );
+            }));
+
+            const alumnoMapError = alumnosMap.find((response) => {
+                if(response.status !== 200){
+                    return response;
+                }
+            });
+
+            if(alumnoMapError){
+                return new Response(
+                    JSON.stringify(await alumnoMapError.json()),
+                    {
+                        status: alumnoMapError.status,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const asignatura_upt: AsignaturaDB = {
+                _id: asignatura_exists._id,
+                nombre: asignatura_exists.nombre,
+                curso: asignatura_exists.curso,
+                creditos: asignatura_exists.creditos,
+                cursos_academicos: [],
+                optatividad: asignatura_exists.optatividad,
+                tipo: asignatura_exists.tipo,
+            }
+
+            asignatura_exists.cursos_academicos.forEach((curso) => {
+                if(curso.id.toString() === curso_upt.id.toString()){
+                    asignatura_upt.cursos_academicos.push(curso_upt);
+                }
+                else{
+                    asignatura_upt.cursos_academicos.push(curso);
+                }
+            });
+
+            const { modifiedCount } = await AsignaturasCollection.updateOne(
+                {_id: asignatura_upt._id},
+                {
+                    $set: {
+                        cursos_academicos: asignatura_upt.cursos_academicos,
+                    }
+                }
+            );
+
+            if(modifiedCount === 0){
+                return new Response(
+                    JSON.stringify({error: "No se han podido actualizar las notas"}),
+                    {
+                        status: 404,
+                        headers: headers, 
+                    }
+                );
+            }
 
             return new Response(
-                JSON.stringify({error: "La convocatoria tiene que ser ordinaria o extraordinaria"}),
+                JSON.stringify({message: "Notas exitosamente actualizadas"}),
                 {
-                    status: 406,
+                    status: 200,
                     headers: headers,
                 }
             );
