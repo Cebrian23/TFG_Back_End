@@ -38,9 +38,9 @@ export type Asignatura_curso_DB = {
     profesores: ObjectId[],
     estudiantes: ObjectId[],
     alumnos_ordinaria: AlumnoDB[],
-    ordinaria_firmada: boolean,
+    ordinaria_firmada?: boolean,
     alumnos_extraordinaria: AlumnoDB[],
-    extraordinaria_firmada: boolean,
+    extraordinaria_firmada?: boolean,
     tipo: "Curso",
 }
 
@@ -91,15 +91,14 @@ export type Alumno = {
     tipo: "Alumno",
 }
 
-export type Asignatura_alumno_DB = {
-    id: ObjectId,
+export type Asignatura_alumno_DB = OptionalId<{
     asignatura: ObjectId,
     convocatoria_num: "1º" | "2º"  | "3º" | "4º" | "5º" | "6º" | string,
     convocatoria_name: "Ordinaria" | "Extraordinaria",
     curso: string,
     nota: number | "Sin calificar" | "No presentado",
     tipo: "Asignatura",
-}
+}>
 
 export type Asignatura_alumno = {
     id: string,
