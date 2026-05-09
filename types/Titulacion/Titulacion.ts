@@ -13,6 +13,10 @@ export type TitulacionDB = OptionalId<{
     cursos: number,
     convocatorias_disponibles: number,
     asignaturas: ObjectId[],
+    requisitos_TFM: {
+        creditos_obligatorios: number,
+        creditos_optativos: number,
+    },
     TFM: ObjectId,
     administrativos: ObjectId[],
     docentes: ObjectId[],
@@ -27,6 +31,10 @@ export type Titulacion = {
     cursos: number,
     convocatorias_disponibles: number,
     asignaturas: Asignatura_Short[],
+    requisitos_TFM: {
+        creditos_obligatorios: number,
+        creditos_optativos: number,
+    },
     TFM: TFM_Block_Short,
     administrativos: Administrativo_Short[],
     docentes: (Coordinador_Short | Profesor_Short)[],
