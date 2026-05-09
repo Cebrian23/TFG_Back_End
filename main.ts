@@ -1712,10 +1712,12 @@ const handler = async (req: Request): Promise<Response> => {
             const cursos: number | undefined = data.cursos;
             const convocatorias: number | undefined = data.convocatorias;
             const administrativo: string | undefined = data.administrativo;
+            const creditos_obligatorios: number | undefined = data.creditos_obligatorios;
+            const creditos_optativos: number | undefined = data.creditos_optativos;
             const creditos_TFM: number | undefined = data.creditos_TFM;
             const asignaturas: {nombre: string, curso: string, creditos: number, optatividad: string}[] | undefined = data.asignaturas;
 
-            if(!nombre || !universidades || !grados_aptos || !cursos || !convocatorias || !administrativo || !creditos_TFM){
+            if(!nombre || !universidades || !grados_aptos || !cursos || !convocatorias || !administrativo || !creditos_obligatorios || !creditos_optativos || !creditos_TFM){
                 return new Response(
                     JSON.stringify({error: "Falta información de la titulación"}),
                     {
@@ -1807,6 +1809,10 @@ const handler = async (req: Request): Promise<Response> => {
                     cursos: cursos,
                     convocatorias_disponibles: convocatorias,
                     asignaturas: new_asignaturas,
+                    requisitos_TFM: {
+                        creditos_obligatorios: creditos_obligatorios,
+                        creditos_optativos: creditos_optativos,
+                    },
                     TFM: TFM_Info.insertedId,
                     administrativos: administrativos,
                     docentes: [],
@@ -2502,7 +2508,6 @@ const handler = async (req: Request): Promise<Response> => {
         }*/
         else if(path === "/curso/convocatoria/notas"){
             const data = await req.json();
-            //console.log(data);
             const asignatura = data.asignatura;
             const curso = data.curso;
             const convocatoria = data.convocatoria;
@@ -2550,6 +2555,56 @@ const handler = async (req: Request): Promise<Response> => {
                     JSON.stringify({error: `Curso no encontrado en ${asignatura_exists.nombre}`}),
                     {
                         status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            if(convocatoria === "Extraordinaria" && notas.length === 0){
+                curso_exists.extraordinaria_firmada = true;
+
+                const asignatura_upt: AsignaturaDB = {
+                    _id: asignatura_exists._id,
+                    nombre: asignatura_exists.nombre,
+                    curso: asignatura_exists.curso,
+                    creditos: asignatura_exists.creditos,
+                    cursos_academicos: [],
+                    optatividad: asignatura_exists.optatividad,
+                    tipo: asignatura_exists.tipo,
+                }
+
+                asignatura_exists.cursos_academicos.forEach((curso) => {
+                    if(curso.id.toString() === curso_exists.id.toString()){
+                        asignatura_upt.cursos_academicos.push(curso_exists);
+                    }
+                    else{
+                        asignatura_upt.cursos_academicos.push(curso);
+                    }
+                });
+
+                const { modifiedCount } = await AsignaturasCollection.updateOne(
+                    {_id: asignatura_upt._id},
+                    {
+                        $set: {
+                            cursos_academicos: asignatura_upt.cursos_academicos,
+                        }
+                    }
+                );
+
+                if(modifiedCount === 0){
+                    return new Response(
+                        JSON.stringify({error: "No se han podido actualizar las notas de la convocatoria extraordinaria"}),
+                        {
+                            status: 404,
+                            headers: headers, 
+                        }
+                    );
+                }
+
+                return new Response(
+                    JSON.stringify({message: "Notas de la convocatoria extraordinaria exitosamente actualizadas"}),
+                    {
+                        status: 200,
                         headers: headers,
                     }
                 );
@@ -2937,6 +2992,136 @@ const handler = async (req: Request): Promise<Response> => {
             else if(alumno_exists.rol !== "Estudiante"){
                 return new Response(
                     JSON.stringify({error: `Persona con DNI ${alumno} no tiene rol de 'Estudiante', sino de '${alumno_exists.rol}'`}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const asignaturas_alumno: Asignatura_alumno_DB[] = []
+            const tfms_alumno: TFM_alumno_DB[]= []
+
+            alumno_exists.asignaturas_aprobadas.forEach((asignatura) => {
+                if(asignatura.tipo === "Asignatura"){
+                    asignaturas_alumno.push(asignatura);
+                }
+                else if(asignatura.tipo === "TFM"){
+                    tfms_alumno.push(asignatura);
+                }
+            });
+
+            if(tfms_alumno.length === 1){
+                const block_exists = await AsignaturasCollection.findOne({_id: titulacion_exists.TFM});
+
+                if(!block_exists){
+                    return new Response(
+                        JSON.stringify({error: "Bloque de TFMs no encontrado"}),
+                        {
+                            status: 404,
+                            headers: headers,
+                        }
+                    );
+                }
+                else if(block_exists.tipo === "Asignatura"){
+                    return new Response(
+                        JSON.stringify({error: "Asignatura encontrada en vez de bloque de TFMs"}),
+                        {
+                            status: 406,
+                            headers: headers,
+                        }
+                    );
+                }
+
+                const TFM_exists = block_exists.TFMs.find((TFM) => {
+                    if(TFM._id!.toString() === tfms_alumno[0].TFM.toString()){
+                        return TFM;
+                    }
+                });
+
+                if(TFM_exists !== undefined && TFM_exists.convocatoria.nota !== "Sin calificar" && TFM_exists.convocatoria.nota !== "No presentado" && Number(TFM_exists.convocatoria.nota) >= 5.0){
+                    return new Response(
+                        JSON.stringify({error: "El alumno ya ha presentado el TFM"}),
+                        {
+                            status: 406,
+                            headers: headers,
+                        }
+                    );
+                }
+                else if(TFM_exists !== undefined && (TFM_exists.convocatoria.nota === "Sin calificar" || TFM_exists.convocatoria.nota === "No presentado" || Number(TFM_exists.convocatoria.nota) < 5.0)){
+                    return new Response(
+                        JSON.stringify({error: "Error al catalogar el TFM"}),
+                        {
+                            status: 406,
+                            headers: headers,
+                        }
+                    );
+                }
+            }
+            else if(tfms_alumno.length >= 2){
+                return new Response(
+                    JSON.stringify({error: "El alumno no ha podido presentar más de un TFM"}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const asignaturas_alumno_id = asignaturas_alumno.map((asignatura) => asignatura.asignatura);
+
+            const asignaturas_exists = await AsignaturasCollection.find({_id: {$in: asignaturas_alumno_id}}).toArray();
+
+            const asignatura_exists_error = asignaturas_exists.find((asignatura) => {
+                if(asignatura.tipo === "Bloque TFMs"){
+                    return asignatura;
+                }
+            });
+
+            if(asignaturas_alumno_id.length !== asignaturas_exists.length){
+                return new Response(
+                    JSON.stringify({error: `${asignaturas_alumno_id.length - asignaturas_exists.length} asignaturas no encontradas`}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            if(asignatura_exists_error !== undefined){
+                return new Response(
+                    JSON.stringify({error: "Bloque de TFMs encontrado en vez de asignatura"}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            let creditos_asigs_obligatorias = 0;
+            let creditos_asigs_optativas = 0;
+
+            asignaturas_exists.forEach((asignatura) => {
+                if(asignatura.tipo === "Asignatura" && asignatura.optatividad === "Obligatoria"){
+                    creditos_asigs_obligatorias += asignatura.creditos;
+                }
+                else if(asignatura.tipo === "Asignatura" && asignatura.optatividad === "Optitiva"){
+                    creditos_asigs_optativas += asignatura.creditos;
+                }
+            });
+
+            if(titulacion_exists.requisitos_TFM.creditos_obligatorios > creditos_asigs_obligatorias){
+                return new Response(
+                    JSON.stringify({error: `Al alumno le faltan ${titulacion_exists.requisitos_TFM.creditos_obligatorios - creditos_asigs_obligatorias} creditos de asignaturas obligatorias para poder presentar el TFM`}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+            else if(titulacion_exists.requisitos_TFM.creditos_optativos > creditos_asigs_optativas){
+                return new Response(
+                    JSON.stringify({error: `Al alumno le faltan ${titulacion_exists.requisitos_TFM.creditos_optativos - creditos_asigs_optativas} creditos de asignaturas optativas para poder presentar el TFM`}),
                     {
                         status: 406,
                         headers: headers,
@@ -3484,7 +3669,7 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             );
         }
-        /*if(path === "/datos_titulacion"){
+        /*else if(path === "/datos_titulacion"){
             const data = await req.json();
             const id: string | undefined = data.id;
             const nombre: string | undefined = data.nombre;
@@ -3744,7 +3929,7 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             );
         }
-        if(path === "/datos_asignatura"){
+        else if(path === "/datos_asignatura"){
             const data = await req.json();
             const id: string | undefined = data.id;
             const nombre: string | undefined = data.name;
