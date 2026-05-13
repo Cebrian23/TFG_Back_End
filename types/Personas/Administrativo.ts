@@ -18,7 +18,6 @@ export type Administrativo = {
     nombre: string,
     apellido_1: string,
     apellido_2?: string,
-    DNI: string,
     prefijo_movil?: string,
     numero_movil?: string,
     email: string,
