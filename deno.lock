@@ -86,6 +86,7 @@
     ],
     "packageJson": {
       "dependencies": [
+        "npm:bcrypt@6",
         "npm:cors@^2.8.6",
         "npm:mongodb@^7.1.1"
       ]
