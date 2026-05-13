@@ -17,6 +17,7 @@ import { Asignatura_curso_DB, Asignatura_curso_docs_short, Asignatura_curso, Alu
 import { Short_Asignatura_Curso_Docs_DB, Transform_Curso, Transform_Alumno } from "./utilities/Asignaturas/utils_Asignaturas.ts";
 import { Short_Titulacion, Transform_Titulacion } from "./utilities/Titulacion/utils_Titulacion.ts";
 import { Error_info } from "./types/Messages/Errors.ts";
+import bcrypt from "bcrypt"
 
 const handler = async (req: Request): Promise<Response> => {
 	const method = req.method;
@@ -64,7 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
 
             const persona: (EstudianteDB | ProfesorDB | CoordinadorDB | AdministrativoDB | null) = await PersonasCollection.findOne({email: email});
 
-            if(!persona || persona.password !== password){
+            if(!persona || await bcrypt.compare(password, persona.password) === false){
                 return new Response(
                     JSON.stringify({error: `Email o contraseña equivocada`}),
                     {
@@ -1328,6 +1329,8 @@ const handler = async (req: Request): Promise<Response> => {
                     );
                 }
 
+			    const hash = await bcrypt.hash(password, 10);
+
                 const { insertedId } = await PersonasCollection.insertOne(
                     {
                         nombre: nombre,
@@ -1337,7 +1340,7 @@ const handler = async (req: Request): Promise<Response> => {
                         prefijo_movil: phone_prefix,
                         numero_movil: phone_number,
                         email: email,
-                        password: password,
+                        password: hash,
                         rol: "Administrativo",
                     }
                 );
@@ -1398,6 +1401,8 @@ const handler = async (req: Request): Promise<Response> => {
                     );
                 }
 
+			    const hash = await bcrypt.hash(password, 10);
+
                 const { insertedId } = await PersonasCollection.insertOne(
                     {
                         nombre: nombre,
@@ -1407,7 +1412,7 @@ const handler = async (req: Request): Promise<Response> => {
                         prefijo_movil: phone_prefix,
                         numero_movil: phone_number,
                         email: email,
-                        password: password,
+                        password: hash,
                         universidad: universidad,
                         rol: "Coordinador",
                     }
@@ -1522,6 +1527,8 @@ const handler = async (req: Request): Promise<Response> => {
                     );
                 }
 
+			    const hash = await bcrypt.hash(password, 10);
+
                 const { insertedId } = await PersonasCollection.insertOne(
                     {
                         nombre: nombre,
@@ -1531,7 +1538,7 @@ const handler = async (req: Request): Promise<Response> => {
                         prefijo_movil: phone_prefix,
                         numero_movil: phone_number,
                         email: email,
-                        password: password,
+                        password: hash,
                         universidad: universidad,
                         rol: "Profesor",
                     }
@@ -1677,6 +1684,8 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
+			const hash = await bcrypt.hash(password, 10);
+
             const { insertedId } = await PersonasCollection.insertOne(
                 {
                     nombre: nombre,
@@ -1686,7 +1695,7 @@ const handler = async (req: Request): Promise<Response> => {
                     prefijo_movil: phone_prefix,
                     numero_movil: phone_number,
                     email: email,
-                    password: password,
+                    password: hash,
                     rol: rol,
                 }
             );
@@ -2725,7 +2734,7 @@ const handler = async (req: Request): Promise<Response> => {
                                 }
                             );
 
-                            if(Number(dato.nota) < 5.0){
+                            if(Number(dato.nota) < 5.0 || dato.nota !== "No presentado"){
                                 curso_upt.alumnos_extraordinaria.push(
                                     {
                                         estudiante: alumno.estudiante,
@@ -2750,7 +2759,9 @@ const handler = async (req: Request): Promise<Response> => {
 
                 alumnosConvocatoria.forEach((alumno1) => {
                     alumnosNotas.forEach((alumno2) => {
-                        if(alumno1 === alumno2){
+                        if(alumno1.toString() === alumno2.toString(
+                            
+                        )){
                             alumnosCalificados.push(alumno1);
                         }
                     });
@@ -3355,7 +3366,9 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             }
             else{
-                pass = password;
+                pass = await bcrypt.hash(password, 10);
+
+                console.log(pass)
             }
 
             if(!nombre && !apellido_1 && !email){
@@ -3454,7 +3467,7 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
             else if(rol === "Administrativo"){
-                if(password === undefined){
+                /*if(password === undefined){
                     const { modifiedCount } = await PersonasCollection.updateOne(
                     {_id: new ObjectId(id)},
                         {$set:
@@ -3487,7 +3500,7 @@ const handler = async (req: Request): Promise<Response> => {
                             headers: headers,
                         }
                     );
-                }
+                }*/
 
                 const { modifiedCount } = await PersonasCollection.updateOne(
                     {_id: new ObjectId(id)},
@@ -3499,7 +3512,7 @@ const handler = async (req: Request): Promise<Response> => {
                             prefijo_movil: prefix,
                             numero_movil: phone,
                             email: email,
-                            password: password,
+                            password: pass,
                         }
                     }
                 );
@@ -3523,7 +3536,7 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
             else if(rol === "Coordinador"){
-                if(password === undefined){
+                /*if(password === undefined){
                     const { modifiedCount } = await PersonasCollection.updateOne(
                     {_id: new ObjectId(id)},
                         {$set:
@@ -3556,7 +3569,7 @@ const handler = async (req: Request): Promise<Response> => {
                             headers: headers,
                         }
                     );
-                }
+                }*/
 
                 const { modifiedCount } = await PersonasCollection.updateOne(
                     {_id: new ObjectId(id)},
@@ -3568,7 +3581,7 @@ const handler = async (req: Request): Promise<Response> => {
                             prefijo_movil: prefix,
                             numero_movil: phone,
                             email: email,
-                            password: password,
+                            password: pass,
                         }
                     }
                 );
@@ -3592,7 +3605,7 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
             else if(rol === "Profesor"){
-                if(password === undefined){
+                /*if(password === undefined){
                     const { modifiedCount } = await PersonasCollection.updateOne(
                         {_id: new ObjectId(id)},
                         {$set:
@@ -3625,7 +3638,7 @@ const handler = async (req: Request): Promise<Response> => {
                             headers: headers,
                         }
                     );
-                }
+                }*/
 
                 const { modifiedCount } = await PersonasCollection.updateOne(
                     {_id: new ObjectId(id)},
@@ -3637,7 +3650,7 @@ const handler = async (req: Request): Promise<Response> => {
                             prefijo_movil: prefix,
                             numero_movil: phone,
                             email: email,
-                            password: password,
+                            password: pass,
                         }
                     }
                 );
