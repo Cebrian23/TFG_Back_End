@@ -15,7 +15,6 @@ export const Transform_Administrativo = async (administrativo: AdministrativoDB)
                 nombre: administrativo.nombre,
                 apellido_1: administrativo.apellido_1,
                 apellido_2: administrativo.apellido_2,
-                DNI: administrativo.DNI,
                 prefijo_movil: administrativo.prefijo_movil,
                 numero_movil: administrativo.numero_movil,
                 email: administrativo.email,

@@ -6,7 +6,6 @@ export const Transform_Profesor = (profesor: ProfesorDB): Profesor => {
         nombre: profesor.nombre,
         apellido_1: profesor.apellido_1,
         apellido_2: profesor.apellido_2,
-        DNI: profesor.DNI,
         prefijo_movil: profesor.prefijo_movil,
         numero_movil: profesor.numero_movil,
         email: profesor.email,

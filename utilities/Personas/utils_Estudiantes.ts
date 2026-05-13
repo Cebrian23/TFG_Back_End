@@ -43,14 +43,14 @@ export const Transform_Estudiante = (estudiante: EstudianteDB): Response => {
         }
 
         const asig_exists = asignatura_exists.cursos_academicos.find((asig_data) => {
-            if(asig.id === asig_data.id){
+            if(asig._id!.toString() === asig_data.id.toString()){
                 return asig_data;
             }
         });
 
         if(asig_exists === undefined){
             return new Response(
-                JSON.stringify({error: `Asignatura con id ${asig.id} no encontrada`}),
+                JSON.stringify({error: `Asignatura con id ${asig._id!.toString()} no encontrada`}),
                 {
                     status: 404,
                 }
@@ -59,7 +59,7 @@ export const Transform_Estudiante = (estudiante: EstudianteDB): Response => {
 
         alum_asig_cursadas_final.push(
             {
-                id: asig.id,
+                _id: asig._id,
                 asignatura: asig.asignatura,
                 convocatoria_num: asig.convocatoria_num,
                 convocatoria_name: asig.convocatoria_name,
@@ -133,7 +133,7 @@ export const Transform_Estudiante = (estudiante: EstudianteDB): Response => {
     alum_asig_cursadas_final.forEach((asig) => {
         asignaturas_cursadas.push(
             {
-                id: asig.id.toString(),
+                id: asig._id!.toString(),
                 asignatura: asig.asignatura.toString(),
                 convocatoria_num: asig.convocatoria_num,
                 convocatoria_name: asig.convocatoria_name,
@@ -193,14 +193,14 @@ export const Transform_Estudiante = (estudiante: EstudianteDB): Response => {
         }
 
         const asig_exists = asignatura_exists.cursos_academicos.find((asig_data) => {
-            if(asig.id === asig_data.id){
+            if(asig._id === asig_data.id){
                 return asig_data;
             }
         });
 
         if(asig_exists === undefined){
             return new Response(
-                JSON.stringify({error: `Asignatura con id ${asig.id} no encontrada`}),
+                JSON.stringify({error: `Asignatura con id ${asig._id!.toString()} no encontrada`}),
                 {
                     status: 404,
                 }
@@ -209,7 +209,7 @@ export const Transform_Estudiante = (estudiante: EstudianteDB): Response => {
 
         alum_asig_aprobadas_final.push(
             {
-                id: asig.id,
+                _id: asig._id,
                 asignatura: asig.asignatura,
                 convocatoria_num: asig.convocatoria_num,
                 convocatoria_name: asig.convocatoria_name,
@@ -283,7 +283,7 @@ export const Transform_Estudiante = (estudiante: EstudianteDB): Response => {
     alum_asig_aprobadas_final.forEach((asig) => {
         asignaturas_aprobadas.push(
             {
-                id: asig.id.toString(),
+                id: asig._id!.toString(),
                 asignatura: asig.asignatura.toString(),
                 convocatoria_num: asig.convocatoria_num,
                 convocatoria_name: asig.convocatoria_name,

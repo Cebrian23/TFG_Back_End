@@ -6,7 +6,6 @@ export const Transform_Coordinador = (coordinador: CoordinadorDB): Coordinador =
         nombre: coordinador.nombre,
         apellido_1: coordinador.apellido_1,
         apellido_2: coordinador.apellido_2,
-        DNI: coordinador.DNI,
         prefijo_movil: coordinador.prefijo_movil,
         numero_movil: coordinador.numero_movil,
         email: coordinador.email,
