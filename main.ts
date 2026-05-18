@@ -18,6 +18,10 @@ import { Short_Asignatura_Curso_Docs_DB, Transform_Curso, Transform_Alumno } fro
 import { Short_Titulacion, Transform_Titulacion } from "./utilities/Titulacion/utils_Titulacion.ts";
 import { Error_info } from "./types/Messages/Errors.ts";
 import bcrypt from "bcrypt"
+import { Compare_Passwords, Decrypt_Passwords, Hash_Passwords } from "./utilities/Transforms/Transform_Passwords.ts";
+import { Decrypt_DNI, Encrypt_DNI } from "./utilities/Transforms/Transform_DNI.ts";
+
+console.log(Encrypt_DNI("75314829D"))
 
 const handler = async (req: Request): Promise<Response> => {
 	const method = req.method;
@@ -65,7 +69,19 @@ const handler = async (req: Request): Promise<Response> => {
 
             const persona: (EstudianteDB | ProfesorDB | CoordinadorDB | AdministrativoDB | null) = await PersonasCollection.findOne({email: email});
 
-            if(!persona || await bcrypt.compare(password, persona.password) === false){
+            const passwordDecrypt = Decrypt_Passwords(password);
+
+            if(passwordDecrypt === undefined){
+                return new Response(
+                    JSON.stringify({error: `Email o contraseña equivocada`}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            if(!persona || await Compare_Passwords(password, persona.password!) === false){
                 return new Response(
                     JSON.stringify({error: `Email o contraseña equivocada`}),
                     {
@@ -1235,8 +1251,13 @@ const handler = async (req: Request): Promise<Response> => {
                 surname_2 = apellido_2;
             }
 
+            const personas = await PersonasCollection.find().toArray();
             const persona_email = await PersonasCollection.findOne({email: email});
-            const persona_DNI = await PersonasCollection.findOne({DNI: DNI});
+            const persona_DNI = personas.find((persona) => {
+                if(Decrypt_DNI(DNI) === Decrypt_DNI(persona.DNI)){
+                    return persona;
+                }
+            });
 
             if(persona_email){
                 return new Response(
@@ -1329,7 +1350,8 @@ const handler = async (req: Request): Promise<Response> => {
                     );
                 }
 
-			    const hash = await bcrypt.hash(password, 10);
+                const passwordDecrypt = Decrypt_Passwords(password);
+			    const hash = await Hash_Passwords(passwordDecrypt);
 
                 const { insertedId } = await PersonasCollection.insertOne(
                     {
@@ -1401,7 +1423,8 @@ const handler = async (req: Request): Promise<Response> => {
                     );
                 }
 
-			    const hash = await bcrypt.hash(password, 10);
+                const passwordDecrypt = Decrypt_Passwords(password);
+			    const hash = await Hash_Passwords(passwordDecrypt);
 
                 const { insertedId } = await PersonasCollection.insertOne(
                     {
@@ -1527,7 +1550,8 @@ const handler = async (req: Request): Promise<Response> => {
                     );
                 }
 
-			    const hash = await bcrypt.hash(password, 10);
+                const passwordDecrypt = Decrypt_Passwords(password);
+			    const hash = await Hash_Passwords(passwordDecrypt);
 
                 const { insertedId } = await PersonasCollection.insertOne(
                     {
@@ -3366,9 +3390,8 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             }
             else{
-                pass = await bcrypt.hash(password, 10);
-
-                console.log(pass)
+                const passwordDecrypt = Decrypt_Passwords(password);
+                pass = await Hash_Passwords(passwordDecrypt);
             }
 
             if(!nombre && !apellido_1 && !email){
