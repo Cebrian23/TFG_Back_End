@@ -88,6 +88,7 @@
       "dependencies": [
         "npm:bcrypt@6",
         "npm:cors@^2.8.6",
+        "npm:crypto-js@^4.2.0",
         "npm:mongodb@^7.1.1"
       ]
     }
