@@ -19,7 +19,6 @@ export const Decrypt_Passwords = (password: string) => {
     }
 
     const bytes = CryptoJS.AES.decrypt(password.trim(), DNI_KEY);
-    console.log("Decode: "+ bytes.toString(CryptoJS.enc.Utf8));
 
     return bytes.toString(CryptoJS.enc.Utf8);
 }
