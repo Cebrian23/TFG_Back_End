@@ -43,6 +43,8 @@ const handler = async (req: Request): Promise<Response> => {
             const email = searchParams.get("email");
             const password = searchParams.get("password");
 
+            console.log(password)
+
             if(!email || !password){
                 return new Response(
                     JSON.stringify({error: "Email o contraseña no encontrada"}),
@@ -68,6 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
             const persona: (EstudianteDB | ProfesorDB | CoordinadorDB | AdministrativoDB | null) = await PersonasCollection.findOne({email: email});
 
             const passwordDecrypt = Decrypt_Passwords(password);
+            console.log(passwordDecrypt)
 
             if(passwordDecrypt === undefined){
                 return new Response(
@@ -79,7 +82,10 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
-            if(!persona || await Compare_Passwords(password, persona.password!) === false){
+            console.log(persona!.password)
+            console.log(await Compare_Passwords(passwordDecrypt, persona!.password!))
+
+            if(!persona || await Compare_Passwords(passwordDecrypt, persona.password!) === false){
                 return new Response(
                     JSON.stringify({error: `Email o contraseña equivocada`}),
                     {
