@@ -21,8 +21,6 @@ import bcrypt from "bcrypt"
 import { Compare_Passwords, Decrypt_Passwords, Hash_Passwords } from "./utilities/Transforms/Transform_Passwords.ts";
 import { Decrypt_DNI, Encrypt_DNI } from "./utilities/Transforms/Transform_DNI.ts";
 
-console.log(Encrypt_DNI("75314829D"))
-
 const handler = async (req: Request): Promise<Response> => {
 	const method = req.method;
 	const url = new URL(req.url);
