@@ -17,9 +17,8 @@ import { Asignatura_curso_DB, Asignatura_curso_docs_short, Asignatura_curso, Alu
 import { Short_Asignatura_Curso_Docs_DB, Transform_Curso, Transform_Alumno } from "./utilities/Asignaturas/utils_Asignaturas.ts";
 import { Short_Titulacion, Transform_Titulacion } from "./utilities/Titulacion/utils_Titulacion.ts";
 import { Error_info } from "./types/Messages/Errors.ts";
-import bcrypt from "bcrypt"
-import { Compare_Passwords, Decrypt_Passwords, Hash_Passwords } from "./utilities/Transforms/Transform_Passwords.ts";
-import { Decrypt_DNI, Encrypt_DNI } from "./utilities/Transforms/Transform_DNI.ts";
+import { Decrypt_Passwords } from "./utilities/Transforms/Transform_Passwords.ts";
+import { Decrypt_DNI } from "./utilities/Transforms/Transform_DNI.ts";
 
 const handler = async (req: Request): Promise<Response> => {
 	const method = req.method;
@@ -67,19 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
 
             const persona: (EstudianteDB | ProfesorDB | CoordinadorDB | AdministrativoDB | null) = await PersonasCollection.findOne({email: email});
 
-            const passwordDecrypt = Decrypt_Passwords(password);
-
-            if(passwordDecrypt === undefined){
-                return new Response(
-                    JSON.stringify({error: `Email o contraseña equivocada`}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
-            }
-
-            if(!persona || await Compare_Passwords(passwordDecrypt, persona.password!) === false){
+            if(!persona || Decrypt_Passwords(password) !== Decrypt_Passwords(persona.password!)){
                 return new Response(
                     JSON.stringify({error: `Email o contraseña equivocada`}),
                     {
@@ -1348,9 +1335,6 @@ const handler = async (req: Request): Promise<Response> => {
                     );
                 }
 
-                const passwordDecrypt = Decrypt_Passwords(password);
-			    const hash = await Hash_Passwords(passwordDecrypt);
-
                 const { insertedId } = await PersonasCollection.insertOne(
                     {
                         nombre: nombre,
@@ -1360,7 +1344,7 @@ const handler = async (req: Request): Promise<Response> => {
                         prefijo_movil: phone_prefix,
                         numero_movil: phone_number,
                         email: email,
-                        password: hash,
+                        password: password,
                         rol: "Administrativo",
                     }
                 );
@@ -1421,9 +1405,6 @@ const handler = async (req: Request): Promise<Response> => {
                     );
                 }
 
-                const passwordDecrypt = Decrypt_Passwords(password);
-			    const hash = await Hash_Passwords(passwordDecrypt);
-
                 const { insertedId } = await PersonasCollection.insertOne(
                     {
                         nombre: nombre,
@@ -1433,7 +1414,7 @@ const handler = async (req: Request): Promise<Response> => {
                         prefijo_movil: phone_prefix,
                         numero_movil: phone_number,
                         email: email,
-                        password: hash,
+                        password: password,
                         universidad: universidad,
                         rol: "Coordinador",
                     }
@@ -1548,9 +1529,6 @@ const handler = async (req: Request): Promise<Response> => {
                     );
                 }
 
-                const passwordDecrypt = Decrypt_Passwords(password);
-			    const hash = await Hash_Passwords(passwordDecrypt);
-
                 const { insertedId } = await PersonasCollection.insertOne(
                     {
                         nombre: nombre,
@@ -1560,7 +1538,7 @@ const handler = async (req: Request): Promise<Response> => {
                         prefijo_movil: phone_prefix,
                         numero_movil: phone_number,
                         email: email,
-                        password: hash,
+                        password: password,
                         universidad: universidad,
                         rol: "Profesor",
                     }
@@ -1706,8 +1684,6 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
-			const hash = await bcrypt.hash(password, 10);
-
             const { insertedId } = await PersonasCollection.insertOne(
                 {
                     nombre: nombre,
@@ -1717,7 +1693,7 @@ const handler = async (req: Request): Promise<Response> => {
                     prefijo_movil: phone_prefix,
                     numero_movil: phone_number,
                     email: email,
-                    password: hash,
+                    password: password,
                     rol: rol,
                 }
             );
@@ -2216,327 +2192,6 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             );
         }
-        /*else if(path === "/curso/notas"){
-            const data = await req.json();
-            const asignatura: string | undefined = data.asignatura;
-            const curso: string | undefined = data.curso;
-            const convocatoria: "Ordinaria" | "Extraordinaria" | undefined = data.convocatoria;
-            const notas: {DNI: string, nota: number | "No presentado"}[] | undefined = data.notas;
-
-            if(!asignatura || !curso || !convocatoria || !notas){
-                return new Response(
-                    JSON.stringify({error: "Falta información de las notas"}),
-                    {
-                        status: 400,
-                        headers: headers,
-                    }
-                );
-            }
-
-            let nota_count = 0;
-            const nota_error = notas.find((calificacion) => {
-                if((typeof calificacion.nota === "string") && (calificacion.nota !== "No presentado")){
-                    return calificacion;
-                }
-                else if(nota_count === notas.length - 1){
-                    return undefined;
-                }
-
-                nota_count += 1;
-            });
-
-            if(nota_error){
-                return new Response(
-                    JSON.stringify({error: `Calificación del alumno con DNI ${nota_error.DNI} tiene que ser un número o 'No presentado'`}),
-                    {
-                        status: 406,
-                        headers: headers,
-                    }
-                );
-            }
-
-            const asignatura_exists = await AsignaturasCollection.findOne({_id: new ObjectId(asignatura)});
-
-            if(!asignatura_exists){
-                return new Response(
-                    JSON.stringify({error: `Asignatura con id ${asignatura} no encontrada`}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
-            }
-            else if(asignatura_exists.tipo !== "Asignatura"){
-                return new Response(
-                    JSON.stringify({error: `Bloque de TFMs con id ${asignatura_exists._id} encontrada en vez de asignatura`}),
-                    {
-                        status: 406,
-                        headers: headers,
-                    }
-                );
-            }
-
-            let index: number = 0;
-            const curso_academico = asignatura_exists.cursos_academicos.find((cursito) => {
-                if(cursito.curso_academico === curso){
-                    return cursito;
-                }
-                else if(index === asignatura_exists.cursos_academicos.length){
-                    return undefined;
-                }
-
-                index += 1;
-            });
-
-            if(curso_academico === undefined){
-                return new Response(
-                    JSON.stringify({error: `${curso} no encontrado en la asignatura con id ${asignatura}`}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
-            }
-
-            const new_cursos: Asignatura_curso_DB[] = [];
-            const curso_alumnos: Alumno[] = [];
-
-            const curso_final: Asignatura_curso_DB = {
-                id: curso_academico.id,
-                curso_academico: curso_academico.curso_academico,
-                profesores: curso_academico.profesores,
-                estudiantes: curso_academico.estudiantes,
-                alumnos_ordinaria: [],
-                ordinaria_firmada: curso_academico.ordinaria_firmada,
-                alumnos_extraordinaria: [],
-                extraordinaria_firmada: curso_academico.extraordinaria_firmada,
-                tipo: "Curso",
-            }
-
-            if(convocatoria === "Ordinaria"){
-                const curso_alumnosDB: Response[] = await Promise.all(curso_academico.alumnos_ordinaria.map(async (person) => await Transform_Alumno(person)));
-
-                const data: (Alumno | Error_info)[] = await Promise.all(curso_alumnosDB.map(async (curso) => {
-                    if(curso.status !== 200){
-                        const error = await curso.json();
-
-                        return {
-                            tipo: "error",
-                            status: curso.status,
-                            error: error.error,
-                        }
-                    }
-                    else{
-                        return await curso.json();
-                    }
-                }));
-
-                data.forEach((data_info) => {
-                    if(data_info.tipo === "error"){
-                        const status = data_info.status;
-
-                        return new Response(
-                            JSON.stringify(data_info.error),
-                            {
-                                status: status,
-                                headers: headers,
-                            }
-                        );
-                    }
-                    else{
-                        curso_alumnos.push(data_info as Alumno);
-                    }
-                });
-
-                if(curso_academico.alumnos_ordinaria.length !== curso_alumnos.length){
-                    return new Response(
-                        JSON.stringify({error: `${curso_academico.alumnos_ordinaria.length - curso_alumnos.length} alumnos en ordinaria no encontrados`}),
-                        {
-                            status: 404,
-                            headers: headers,
-                        }
-                    );
-                }
-
-                notas.forEach((calificacion) => {
-                    curso_alumnos.forEach((alumno) => {
-                        if((calificacion.DNI === alumno.estudiante.DNI) && (alumno.nota === "Sin calificar")){
-                            curso_final.alumnos_ordinaria.push(
-                                {
-                                    estudiante: new ObjectId(alumno.estudiante.id),
-                                    convocatoria_name: alumno.convocatoria_name,
-                                    convocatoria_num: alumno.convocatoria_num,
-                                    nota: calificacion.nota,
-                                    tipo: "Alumno",
-                                }
-                            );
-
-                            if(calificacion.nota === "No presentado" || calificacion.nota < 5){
-                                curso_final.alumnos_extraordinaria.push(
-                                    {
-                                        estudiante: new ObjectId(alumno.estudiante.id),
-                                        convocatoria_name: alumno.convocatoria_name,
-                                        convocatoria_num: alumno.convocatoria_num,
-                                        nota: "Sin calificar",
-                                        tipo: "Alumno",
-                                    }
-                                );
-                            }
-                        }
-                    });
-                });
-
-                let count = 0;
-                const alumno_sin_nota = curso_final.alumnos_ordinaria.find((alumno) => {
-                    if(alumno.nota === "Sin calificar"){
-                        return alumno;
-                    }
-                    else if(count === curso_final.alumnos_ordinaria.length - 1){
-                        return undefined;
-                    }
-
-                    count += 1;
-                });
-
-                if(alumno_sin_nota !== undefined){
-                    return new Response(
-                        JSON.stringify({error: `Nota del alumno con id ${alumno_sin_nota.estudiante} no ha sido modificada`}),
-                        {
-                            status: 406,
-                            headers: headers,
-                        }
-                    );
-                }
-            }
-            else if(convocatoria === "Extraordinaria"){
-                curso_academico.alumnos_ordinaria.forEach((alumno) => {
-                    curso_final.alumnos_ordinaria.push(alumno);
-                });
-
-                const curso_alumnosDB: Response[] = await Promise.all(curso_academico.alumnos_extraordinaria.map(async (person) => await Transform_Alumno(person)));
-
-                const data: (Alumno | Error_info)[] = await Promise.all(curso_alumnosDB.map(async (curso) => {
-                    if(curso.status !== 200){
-                        const error = await curso.json();
-                        
-                        return {
-                            tipo: "error",
-                            status: curso.status,
-                            error: error.error,
-                        }
-                    }
-                    else{
-                        return await curso.json();
-                    }
-                }));
-
-                data.forEach((data_info) => {
-                    if(data_info.tipo === "error"){
-                        const status = data_info.status;
-
-                        return new Response(
-                            JSON.stringify(data_info.error),
-                            {
-                                status: status,
-                                headers: headers,
-                            }
-                        );
-                    }
-                    else{
-                        curso_alumnos.push(data_info as Alumno);
-                    }
-                });
-
-                if(curso_academico.alumnos_extraordinaria.length !== curso_alumnos.length){
-                    return new Response(
-                        JSON.stringify({error: `${curso_academico.alumnos_extraordinaria.length - curso_alumnos.length} alumnos en extraordinaria no encontrados`}),
-                        {
-                            status: 404,
-                            headers: headers,
-                        }
-                    );
-                }
-
-                notas.forEach((calificacion) => {
-                    curso_alumnos.forEach((alumno) => {
-                        if((calificacion.DNI === alumno.estudiante.DNI) && (alumno.nota === "Sin calificar")){
-                            curso_final.alumnos_extraordinaria.push(
-                                {
-                                    estudiante: new ObjectId(alumno.estudiante.id),
-                                    convocatoria_name: alumno.convocatoria_name,
-                                    convocatoria_num: alumno.convocatoria_num,
-                                    nota: calificacion.nota,
-                                    tipo: "Alumno",
-                                }
-                            );
-                        }
-                    });
-                });
-
-                let count = 0;
-                const alumno_sin_nota = curso_final.alumnos_extraordinaria.find((alumno) => {
-                    if(alumno.nota === "Sin calificar"){
-                        return alumno;
-                    }
-                    else if(count === curso_final.alumnos_extraordinaria.length - 1){
-                        return undefined;
-                    }
-
-                    count += 1;
-                });
-
-                if(alumno_sin_nota !== undefined){
-                    return new Response(
-                        JSON.stringify({error: `Nota del alumno con id ${alumno_sin_nota.estudiante} no ha sido modificada`}),
-                        {
-                            status: 406,
-                            headers: headers,
-                        }
-                    );
-                }
-            }
-            else{
-                return new Response(
-                    JSON.stringify({error: "Hay que definir la convocatoria"}),
-                    {
-                        status: 406,
-                        headers: headers,
-                    }
-                );
-            }
-
-            asignatura_exists.cursos_academicos.forEach((curso) => {
-                if(curso.id !== curso_final.id){
-                    new_cursos.push(curso);
-                }
-                else{
-                    new_cursos.push(curso_final);
-                };
-            });
-
-            const { modifiedCount } = await AsignaturasCollection.updateOne(
-                {_id: new ObjectId(asignatura)},
-                {$set: {cursos_academicos: new_cursos}}
-            );
-
-            if(modifiedCount === 0){
-                return new Response(
-                    JSON.stringify({error: "No se han podido actualizar las notas"}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
-            }
-
-            return new Response(
-                JSON.stringify({message: "Notas actualizadas"}),
-                {
-                    status: 200,
-                    headers: headers,
-                }
-            );
-        }*/
         else if(path === "/curso/convocatoria/notas"){
             const data = await req.json();
             const asignatura = data.asignatura;
@@ -3388,8 +3043,7 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             }
             else{
-                const passwordDecrypt = Decrypt_Passwords(password);
-                pass = await Hash_Passwords(passwordDecrypt);
+                pass = password;
             }
 
             if(!nombre && !apellido_1 && !email){
@@ -3488,41 +3142,6 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
             else if(rol === "Administrativo"){
-                /*if(password === undefined){
-                    const { modifiedCount } = await PersonasCollection.updateOne(
-                    {_id: new ObjectId(id)},
-                        {$set:
-                            {
-                                nombre: nombre,
-                                apellido_1: apellido_1,
-                                apellido_2: apellido_2,
-                                prefijo_movil: prefix,
-                                numero_movil: phone,
-                                email: email,
-                                password: pass,
-                            }
-                        }
-                    );
-
-                    if(modifiedCount === 0){
-                        return new Response(
-                            JSON.stringify({error: `Los datos del administrativo eran los mismos que se intentaban actualizar`}),
-                            {
-                                status: 404,
-                                headers: headers,
-                            }
-                        );
-                    }
-
-                    return new Response(
-                        JSON.stringify({message: "Administrativo exitosamente modificado"}),
-                        {
-                            status: 200,
-                            headers: headers,
-                        }
-                    );
-                }*/
-
                 const { modifiedCount } = await PersonasCollection.updateOne(
                     {_id: new ObjectId(id)},
                     {$set:
@@ -3557,41 +3176,6 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
             else if(rol === "Coordinador"){
-                /*if(password === undefined){
-                    const { modifiedCount } = await PersonasCollection.updateOne(
-                    {_id: new ObjectId(id)},
-                        {$set:
-                            {
-                                nombre: nombre,
-                                apellido_1: apellido_1,
-                                apellido_2: apellido_2,
-                                prefijo_movil: prefix,
-                                numero_movil: phone,
-                                email: email,
-                                password: pass,
-                            }
-                        }
-                    );
-
-                    if(modifiedCount === 0){
-                        return new Response(
-                            JSON.stringify({error: `Los datos del coordinador eran los mismos que se intentaban actualizar`}),
-                            {
-                                status: 404,
-                                headers: headers,
-                            }
-                        );
-                    }
-
-                    return new Response(
-                        JSON.stringify({message: "Coordinador exitosamente modificado"}),
-                        {
-                            status: 200,
-                            headers: headers,
-                        }
-                    );
-                }*/
-
                 const { modifiedCount } = await PersonasCollection.updateOne(
                     {_id: new ObjectId(id)},
                     {$set:
@@ -3626,41 +3210,6 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
             else if(rol === "Profesor"){
-                /*if(password === undefined){
-                    const { modifiedCount } = await PersonasCollection.updateOne(
-                        {_id: new ObjectId(id)},
-                        {$set:
-                            {
-                                nombre: nombre,
-                                apellido_1: apellido_1,
-                                apellido_2: apellido_2,
-                                prefijo_movil: prefix,
-                                numero_movil: phone,
-                                email: email,
-                                password: pass,
-                            }
-                        }
-                    );
-
-                    if(modifiedCount === 0){
-                        return new Response(
-                            JSON.stringify({error: `Los datos del profesor eran los mismos que se intentaban actualizar`}),
-                            {
-                                status: 404,
-                                headers: headers,
-                            }
-                        );
-                    }
-
-                    return new Response(
-                        JSON.stringify({message: "Profesor exitosamente modificado"}),
-                        {
-                            status: 200,
-                            headers: headers,
-                        }
-                    );
-                }*/
-
                 const { modifiedCount } = await PersonasCollection.updateOne(
                     {_id: new ObjectId(id)},
                     {$set:
