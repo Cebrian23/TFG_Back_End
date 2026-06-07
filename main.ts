@@ -19,6 +19,7 @@ import { Short_Titulacion, Transform_Titulacion } from "./utilities/Titulacion/u
 import { Error_info } from "./types/Messages/Errors.ts";
 import { Decrypt_Passwords } from "./utilities/Transforms/Transform_Passwords.ts";
 import { Decrypt_DNI } from "./utilities/Transforms/Transform_DNI.ts";
+import { Validate_DNI } from "./utilities/Validaciones/Validate_DNI.ts";
 
 const handler = async (req: Request): Promise<Response> => {
 	const method = req.method;
@@ -1253,9 +1254,9 @@ const handler = async (req: Request): Promise<Response> => {
                     }
                 );
             }
-            else if(persona_DNI){
+            else if(persona_DNI !== undefined){
                 return new Response(
-                    JSON.stringify({error: `Persona con DNI ${DNI} ya existe`}),
+                    JSON.stringify({error: `Persona con DNI ${Decrypt_DNI(DNI)} ya existe`}),
                     {
                         status: 409,
                         headers: headers,
@@ -1270,6 +1271,18 @@ const handler = async (req: Request): Promise<Response> => {
                     JSON.stringify(await email_validation.json()),
                     {
                         status: email_validation.status,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const dni_validation = Validate_DNI(DNI);
+
+            if(dni_validation.status !== 200){
+                return new Response(
+                    JSON.stringify(await dni_validation.json()),
+                    {
+                        status: dni_validation.status,
                         headers: headers,
                     }
                 );
@@ -2093,6 +2106,41 @@ const handler = async (req: Request): Promise<Response> => {
                     }
                     
                     alumnos.push(alumno._id);
+                    
+                    if(Number(curso.split(" ")[1].split("-")[0]) < Number(alumno.curso_admision.split(" ")[1].split("-")[0])){
+                        let nombre_completo = alumno.nombre + " " + alumno.apellido_1;
+                        if(alumno.apellido_2 !== null && alumno.apellido_2 !== undefined && alumno.apellido_2.trim() !== ""){
+                            nombre_completo += alumno.apellido_2;
+                        }
+                        
+                        return new Response(
+                            JSON.stringify({error: `El alumno ${nombre_completo} no puede matricularse en una asignatura cuando aún no se había inscrito en la titulación`}),
+                            {
+                                status: 400,
+                                headers: headers,
+                            }
+                        );}
+
+                    const asig_aprobada = alumno.asignaturas_aprobadas.find((asig) => {
+                        if(asig.tipo === "Asignatura" && asig._id === new ObjectId(asignatura) && Number(asig.nota) >= 5.0){
+                            return asig;
+                        }
+                    });
+
+                    if(asig_aprobada !== undefined){
+                        let nombre_completo = alumno.nombre + " " + alumno.apellido_1;
+                        if(alumno.apellido_2 !== null && alumno.apellido_2 !== undefined && alumno.apellido_2.trim() !== ""){
+                            nombre_completo += alumno.apellido_2;
+                        }
+
+                        return new Response(
+                            JSON.stringify({error: `El alumno ${nombre_completo} ya tiene la asignatura aprobada`}),
+                            {
+                                status: 406,
+                                headers: headers,
+                            }
+                        );
+                    }
 
                     const asig_cursadasDB: Asignatura_alumno_DB[] = [];
                     alumno.asignaturas_cursadas.forEach((curso) => {
@@ -3010,7 +3058,6 @@ const handler = async (req: Request): Promise<Response> => {
             const nombre: string | undefined = data.nombre;
             const apellido_1: string | undefined = data.apellido_1;
             const apellido_2: string | undefined = data.apellido_2;
-            const email: string | undefined = data.email;
             const password: string | undefined = data.password;
             const prefix: string | undefined = data.prefix;
             const phone: string | undefined = data.phone;
@@ -3046,7 +3093,7 @@ const handler = async (req: Request): Promise<Response> => {
                 pass = password;
             }
 
-            if(!nombre && !apellido_1 && !email){
+            if(!nombre && !apellido_1){
                 return new Response(
                     JSON.stringify({error: "Tienes que aportar algún dato para actualizar"}),
                     {
@@ -3054,32 +3101,6 @@ const handler = async (req: Request): Promise<Response> => {
                         headers: headers,
                     }
                 );
-            }
-
-            if(email){
-                const data = await Validate_Email(email);
-
-                if(data.status !== 200){
-                    return new Response(
-                        JSON.stringify(await data.json()),
-                        {
-                            status: data.status,
-                            headers: headers,
-                        }
-                    );
-                }
-
-                const email_error = await PersonasCollection.findOne({email: email});
-
-                if(email_error && email_error._id.toString() !== id){
-                    return new Response(
-                        JSON.stringify({error: `Email ${email} ya pertenece a otra persona`}),
-                        {
-                            status: 409,
-                            headers: headers,
-                        }
-                    );
-                }
             }
             
             if(prefix && phone){
@@ -3118,7 +3139,6 @@ const handler = async (req: Request): Promise<Response> => {
                             apellido_2: apellido_2,
                             prefijo_movil: prefix,
                             numero_movil: phone,
-                            email: email,
                         }
                     }
                 );
@@ -3151,7 +3171,6 @@ const handler = async (req: Request): Promise<Response> => {
                             apellido_2: apellido_2,
                             prefijo_movil: prefix,
                             numero_movil: phone,
-                            email: email,
                             password: pass,
                         }
                     }
@@ -3185,7 +3204,6 @@ const handler = async (req: Request): Promise<Response> => {
                             apellido_2: apellido_2,
                             prefijo_movil: prefix,
                             numero_movil: phone,
-                            email: email,
                             password: pass,
                         }
                     }
@@ -3219,7 +3237,6 @@ const handler = async (req: Request): Promise<Response> => {
                             apellido_2: apellido_2,
                             prefijo_movil: prefix,
                             numero_movil: phone,
-                            email: email,
                             password: pass,
                         }
                     }
