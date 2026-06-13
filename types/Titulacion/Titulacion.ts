@@ -8,6 +8,12 @@ import { Estudiante_Short } from "../Personas/Estudiante.ts";
 
 export type TitulacionDB = OptionalId<{
     nombre: string,
+    creacion: number,
+    controlCalidad: {
+        universidad: string,
+        year: number,
+        tipo: "anual" | "Cada 3 años" | "Cada 6 años",
+    }[],
     universidades: string[],
     grados_aptos: string[],
     cursos: number,
@@ -26,6 +32,12 @@ export type TitulacionDB = OptionalId<{
 export type Titulacion = {
     id: string,
     nombre: string,
+    creacion?: string,
+    controlCalidad?: {
+        universidad: string,
+        year: number,
+        tipo: "anual" | "Cada 3 años" | "Cada 6 años",
+    }[],
     universidades: string[],
     grados_aptos: string[],
     cursos: number,
@@ -44,5 +56,5 @@ export type Titulacion = {
 export type Titulacion_Short = {
     id: string,
     nombre: string,
-    TFM: string
+    TFM: string,
 }
