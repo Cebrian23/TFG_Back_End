@@ -1200,6 +1200,28 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             );
         }
+        else if(path === "/titulacion/control_calidad"){
+            const universidad = searchParams.get("universidad");
+
+            if(universidad){
+                return new Response(
+                    JSON.stringify({error: "Falta algún dato para hacer la búsqueda"}),
+                    {
+                        status: 400,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const personasUniversidad = await PersonasCollection.find({universidad: universidad}).toArray();
+            const estudiantesUniversidad: EstudianteDB[] = [];
+
+            personasUniversidad.forEach((persona) => {
+                if(persona.rol === "Estudiante"){
+                    estudiantesUniversidad.push(persona);
+                }
+            });
+        }
 	}
     else if(method === "POST"){
         if(path === "/persona"){
@@ -1804,6 +1826,16 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             );
 
+            const date = new Date();
+            let creationDate = 0;
+
+            if(date.getMonth() + 1 < 7){
+                creationDate = date.getFullYear() - 1;
+            }
+            else{
+                creationDate = date.getFullYear();
+            }
+
             let new_asignaturas: ObjectId[] = [];
 
             if(asignaturas){
@@ -1824,6 +1856,8 @@ const handler = async (req: Request): Promise<Response> => {
             const { insertedId } = await TitulacionesCollection.insertOne(
                 {
                     nombre: nombre,
+                    creacion: creationDate,
+                    controlCalidad: [],
                     universidades: universidades,
                     grados_aptos: grados_aptos,
                     cursos: cursos,
@@ -2029,6 +2063,27 @@ const handler = async (req: Request): Promise<Response> => {
             else if(asignatura_exists.tipo !== "Asignatura"){
                 return new Response(
                     JSON.stringify({error: `Bloque de TFMs con id ${asignatura_exists._id} encontrada en vez de asignatura`}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const titulacion_in = await TitulacionesCollection.findOne({asignaturas: asignatura_exists._id});
+
+            if(!titulacion_in){
+                return new Response(
+                    JSON.stringify({error: "Titulación no encontrada"}),
+                    {
+                        status: 400,
+                        headers: headers,
+                    }
+                );
+            }
+            else if(titulacion_in.creacion > Number(curso.split(" ")[1].split("-")[0])){
+                return new Response(
+                    JSON.stringify({error: "La fecha del curso no puede ser inferior a la de creación de la titulación"}),
                     {
                         status: 406,
                         headers: headers,
@@ -2688,6 +2743,15 @@ const handler = async (req: Request): Promise<Response> => {
                     JSON.stringify({error: "La titulación del TFM no ha sido encontrada"}),
                     {
                         status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+            else if(titulacion_exists.creacion > Number(fecha_def.split("-")[2])){
+                return new Response(
+                    JSON.stringify({error: "La fecha de la defensa no puede ser inferior a la de creación de la titulación"}),
+                    {
+                        status: 406,
                         headers: headers,
                     }
                 );
