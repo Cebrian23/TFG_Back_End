@@ -43,7 +43,7 @@ export const Transform_TFM = async (tfm: TFM_DB): Promise<Response> => {
     }
 
     director_exists.forEach((docente) => {
-        if(docente.rol !== "Profesor" && docente.rol !== "Coordinador"){
+        if(docente.rol !== "Profesor" && docente.rol !== "Coordinador" && docente.rol !== "Coordinador general"){
             return new Response(
                 JSON.stringify({error: `Persona con id ${docente._id} no tiene rol de 'Profesor' ni de 'Coordinador', sino de '${docente.rol}'`}),
                 {
@@ -66,7 +66,7 @@ export const Transform_TFM = async (tfm: TFM_DB): Promise<Response> => {
 
     const tribunal: (CoordinadorDB | ProfesorDB)[] = [];
     tribunal_exists.forEach((docente) => {
-        if(docente.rol !== "Profesor" && docente.rol !== "Coordinador"){
+        if(docente.rol !== "Profesor" && docente.rol !== "Coordinador" && docente.rol !== "Coordinador general"){
             return new Response(
                 JSON.stringify({error: `Persona con id ${docente._id} no tiene rol de 'Profesor' ni de 'Coordinador', sino ${docente.rol}`}),
                 {
@@ -84,7 +84,7 @@ export const Transform_TFM = async (tfm: TFM_DB): Promise<Response> => {
         if(docente.rol === "Profesor"){
             tribunal_short.push(Short_Profesor_DB(docente));
         }
-        else if(docente.rol === "Coordinador"){
+        else if(docente.rol === "Coordinador" || docente.rol === "Coordinador general"){
             tribunal_short.push(Short_Coordinador_DB(docente));
         }
     });

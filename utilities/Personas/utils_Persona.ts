@@ -18,7 +18,7 @@ export const Persona_To_Short_DB = (persona: CoordinadorDB | EstudianteDB | Prof
     if(persona.rol === "Administrativo"){
         return persona_data as Administrativo_Short;
     }
-    else if(persona.rol === "Coordinador"){
+    else if(persona.rol === "Coordinador" || persona.rol === "Coordinador general"){
         return persona_data as Coordinador_Short;
     }
     else if(persona.rol === "Profesor"){
@@ -57,7 +57,7 @@ export const Persona_To_Short_ID = async (persona: ObjectId): Promise<Response> 
             }
         );
     }
-    else if(persona_exists.rol === "Coordinador"){
+    else if(persona_exists.rol === "Coordinador" || persona_exists.rol === "Coordinador general"){
         JSON.stringify(persona_data as Coordinador_Short),
             {
                 status: 200,

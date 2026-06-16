@@ -107,14 +107,14 @@ export const Transform_Titulacion = async (titulacion: TitulacionDB): Promise<Re
 
     const docentes_transform: (Profesor_Short | Coordinador_Short)[] = []
     const bad_doc = docentes.find((docente) => {
-        if(docente.rol !== "Coordinador" && docente.rol !== "Profesor"){
+        if(docente.rol !== "Coordinador" && docente.rol !== "Coordinador general" && docente.rol !== "Profesor"){
             return docente;
         }
 
         if(docente.rol === "Profesor"){
             docentes_transform.push(Short_Profesor_DB(docente as ProfesorDB));
         }
-        else if(docente.rol === "Coordinador"){
+        else if(docente.rol === "Coordinador" || docente.rol === "Coordinador general"){
             docentes_transform.push(Short_Coordinador_DB(docente as CoordinadorDB));
         }
     });

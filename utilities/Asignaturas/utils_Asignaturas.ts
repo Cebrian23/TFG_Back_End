@@ -32,7 +32,7 @@ export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Re
     const docentes: (Profesor_Short | Coordinador_Short)[] = [];
 
     profesores.forEach((docente) => {
-        if(docente.rol === "Coordinador"){
+        if(docente.rol === "Coordinador" || docente.rol === "Coordinador general"){
             docentes.push(Short_Coordinador_DB(docente));
         }
         else if(docente.rol === "Profesor"){
@@ -363,7 +363,7 @@ export const Short_Asignatura_Curso_Docs_DB = async (curso: Asignatura_curso_DB,
     }
 
     const docente_error = docentesDB.find((docente) => {
-        if(docente.rol !== "Coordinador" && docente.rol !== "Profesor"){
+        if(docente.rol !== "Coordinador" && docente.rol !== "Coordinador general" && docente.rol !== "Profesor"){
             return docente;
         }
     });
@@ -380,7 +380,7 @@ export const Short_Asignatura_Curso_Docs_DB = async (curso: Asignatura_curso_DB,
     const docentes: (Profesor_Short | Coordinador_Short)[] = []
     
     docentesDB.map((docente) => {
-        if(docente.rol === "Coordinador"){
+        if(docente.rol === "Coordinador" || docente.rol === "Coordinador general"){
             docentes.push(Short_Coordinador_DB(docente));
         }
         else if(docente.rol === "Profesor"){
