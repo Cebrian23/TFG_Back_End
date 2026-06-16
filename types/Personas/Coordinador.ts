@@ -9,7 +9,7 @@ export type CoordinadorDB = OptionalId<{
     numero_movil?: string,
     email: string,
     password: string,
-    rol: "Coordinador",
+    rol: "Coordinador" | "Coordinador general", 
     universidad: string,
 }>
 
@@ -21,7 +21,7 @@ export type Coordinador = {
     prefijo_movil?: string,
     numero_movil?: string,
     email: string,
-    rol: "Coordinador",
+    rol: "Coordinador" | "Coordinador general",
     universidad: string,
 }
 
@@ -31,5 +31,5 @@ export type Coordinador_Short = {
     apellido_1: string,
     apellido_2?: string,
     email: string,
-    rol: "Coordinador",
+    rol: "Coordinador" | "Coordinador general",
 }

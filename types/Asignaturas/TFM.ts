@@ -26,6 +26,20 @@ export type TFM_Block_Short = {
     tipo: "Bloque TFMs",
 }
 
+export type TFM_Block_Curso_DB = {
+    id: ObjectId,
+    nombre: string,
+    TFM: TFM_DB[],
+    tipo: "Curso TFM",
+}
+
+export type TFM_Block_Curso = {
+    id: string,
+    nombre: string,
+    TFM: TFM[],
+    tipo: "Curso TFM",
+}
+
 export type TFM_DB = OptionalId<{
     bloque: ObjectId,
     titulo: string,

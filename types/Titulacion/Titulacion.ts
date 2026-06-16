@@ -12,9 +12,11 @@ export type TitulacionDB = OptionalId<{
     controlCalidad: {
         universidad: string,
         year: number,
-        tipo: "anual" | "Cada 3 años" | "Cada 6 años",
     }[],
-    universidades: string[],
+    universidades: {
+        nombre: string,
+        principal: boolean,
+    }[],
     grados_aptos: string[],
     cursos: number,
     convocatorias_disponibles: number,
@@ -38,7 +40,10 @@ export type Titulacion = {
         year: number,
         tipo: "anual" | "Cada 3 años" | "Cada 6 años",
     }[],
-    universidades: string[],
+    universidades: {
+        nombre: string,
+        principal: boolean,
+    }[],
     grados_aptos: string[],
     cursos: number,
     convocatorias_disponibles: number,
