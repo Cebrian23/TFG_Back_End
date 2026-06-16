@@ -118,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
                     }
                 );
             }
-            else if(persona.rol === "Coordinador"){
+            else if(persona.rol === "Coordinador" || persona.rol === "Coordinador general"){
                 return new Response(
                     JSON.stringify(Transform_Coordinador(persona as CoordinadorDB)),
                     {
@@ -191,7 +191,7 @@ const handler = async (req: Request): Promise<Response> => {
                     }
                 );
             }
-            else if(personDB.rol === "Coordinador"){
+            else if(personDB.rol === "Coordinador" || personDB.rol === "Coordinador general"){
                 const person = Transform_Coordinador(personDB);
 
                 return new Response(
@@ -327,7 +327,7 @@ const handler = async (req: Request): Promise<Response> => {
             const peopleDB = await PersonasCollection.find({_id: {$in: docentes}}).toArray();
 
             const people_error = peopleDB.find((person) => {
-                if(person.rol !== "Coordinador" && person.rol !== "Profesor"){
+                if(person.rol !== "Coordinador" && person.rol !== "Coordinador general" && person.rol !== "Profesor"){
                     return person;
                 }
             });
@@ -345,7 +345,7 @@ const handler = async (req: Request): Promise<Response> => {
             const people: (Coordinador_Short | Profesor_Short)[] = [];
             
             peopleDB.forEach((person) => {
-                if(person.rol === "Coordinador"){
+                if(person.rol === "Coordinador" || person.rol === "Coordinador general"){
                     people.push(Short_Coordinador_DB(person as CoordinadorDB));
                 }
                 else if(person.rol === "Profesor"){
@@ -1159,8 +1159,14 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
+            const unis: string[] = [];
+
+            titulacion.universidades.forEach((uni) => {
+                unis.push(uni.nombre);
+            });
+
             return new Response(
-                JSON.stringify(titulacion.universidades),
+                JSON.stringify(unis),
                 {
                     status: 200,
                     headers: headers,
@@ -1201,9 +1207,10 @@ const handler = async (req: Request): Promise<Response> => {
             );
         }
         else if(path === "/titulacion/control_calidad"){
+            const titulacion = searchParams.get("titulacion");
             const universidad = searchParams.get("universidad");
 
-            if(universidad){
+            if(!titulacion || !universidad){
                 return new Response(
                     JSON.stringify({error: "Falta algún dato para hacer la búsqueda"}),
                     {
@@ -1213,14 +1220,44 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
-            const personasUniversidad = await PersonasCollection.find({universidad: universidad}).toArray();
-            const estudiantesUniversidad: EstudianteDB[] = [];
+            const titulacion_exists = await TitulacionesCollection.findOne({_id: new ObjectId(titulacion)});
 
-            personasUniversidad.forEach((persona) => {
-                if(persona.rol === "Estudiante"){
-                    estudiantesUniversidad.push(persona);
+            if(!titulacion_exists){
+                return new Response(
+                    JSON.stringify({error: "Titulación no encontrada"}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const alumnos = await PersonasCollection.find({_id: {$in: titulacion_exists.alumnos}, rol: "Estudiante"}).toArray();
+            const alumnosError = alumnos.find((alumno) => {
+                if(alumno.rol !== "Estudiante"){
+                    return alumno;
                 }
             });
+
+            if(alumnosError !== undefined){
+                return new Response(
+                    JSON.stringify({error: `Persona con rol de ${alumnosError.rol} encontrado en vez de un estudiante`}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const alumnosUniversidad: EstudianteDB[] = [];
+
+            alumnos.forEach((alumno) => {
+                if(alumno.rol === "Estudiante" && alumno.universidad === universidad){
+                    alumnosUniversidad.push(alumno);
+                }
+            });
+            
+            const alumnosIntervalos: EstudianteDB[] = [];
         }
 	}
     else if(method === "POST"){
@@ -1419,6 +1456,29 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
             else if(rol === "Coordinador"){
+                /*const docentes = await PersonasCollection.find({_id: {$in: titulacion_exists.docentes}}).toArray();
+                const docente_error = docentes.find((docente) => {
+                    if(docente.rol !== "Coordinador" && docente.rol !== "Coordinador general" && docente.rol !== "Profesor"){
+                        return docente;
+                    }
+                });
+
+                if(docente_error !== undefined){
+                    return new Response(
+                        JSON.stringify({error: `Se ha encontrado una persona con rol de ${docente_error.rol} en vez de uno con rol de Profesor o Coordinador`}),
+                        {
+                            status: 406,
+                            headers: headers,
+                        }
+                    );
+                }
+
+                const coordinador_exists = docentes.find((docente) => {
+                    if((docente.rol === "Coordinador" || docente.rol === "Coordinador general") && docente.universidad === universidad){
+                        return docente;
+                    }
+                });*/
+
                 if(!universidad || !password){
                     return new Response(
                         JSON.stringify({error: "Falta información de la persona"}),
@@ -1428,9 +1488,10 @@ const handler = async (req: Request): Promise<Response> => {
                         }
                     );
                 }
-                const coordinador_universidad = await PersonasCollection.findOne({universidad: universidad, rol: "Coordinador"});
+                const coordinador_universidad1 = await PersonasCollection.findOne({universidad: universidad, rol: "Coordinador"});
+                const coordinador_universidad2 = await PersonasCollection.findOne({universidad: universidad, rol: "Coordinador general"});
 
-                if(coordinador_universidad){
+                if(coordinador_universidad1 !== undefined){
                     return new Response(
                         JSON.stringify({error: `Coordinador de la universidad ${universidad} ya existe`}),
                         {
@@ -1440,23 +1501,53 @@ const handler = async (req: Request): Promise<Response> => {
                     );
                 }
 
-                const { insertedId } = await PersonasCollection.insertOne(
-                    {
-                        nombre: nombre,
-                        apellido_1: apellido_1,
-                        apellido_2: surname_2,
-                        DNI: DNI,
-                        prefijo_movil: phone_prefix,
-                        numero_movil: phone_number,
-                        email: email,
-                        password: password,
-                        universidad: universidad,
-                        rol: "Coordinador",
+                let newPersonID = new ObjectId();
+
+                const uni_principal = titulacion_exists.universidades.find((uni) => {
+                    if(uni.principal === true && uni.nombre === universidad){
+                        return uni;
                     }
-                );
+                });
+
+                if(uni_principal === undefined){
+                    const { insertedId } = await PersonasCollection.insertOne(
+                        {
+                            nombre: nombre,
+                            apellido_1: apellido_1,
+                            apellido_2: surname_2,
+                            DNI: DNI,
+                            prefijo_movil: phone_prefix,
+                            numero_movil: phone_number,
+                            email: email,
+                            password: password,
+                            universidad: universidad,
+                            rol: "Coordinador",
+                        }
+                    );
+
+                    newPersonID = insertedId;
+                }
+                else{
+                    const { insertedId } = await PersonasCollection.insertOne(
+                        {
+                            nombre: nombre,
+                            apellido_1: apellido_1,
+                            apellido_2: surname_2,
+                            DNI: DNI,
+                            prefijo_movil: phone_prefix,
+                            numero_movil: phone_number,
+                            email: email,
+                            password: password,
+                            universidad: universidad,
+                            rol: "Coordinador general",
+                        }
+                    );
+
+                    newPersonID = insertedId;
+                }
 
                 const coords = titulacion_exists.docentes;
-                coords.push(insertedId);
+                coords.push(newPersonID);
 
                 const { modifiedCount } = await TitulacionesCollection.updateOne(
                     {_id: titulacion_exists._id},
@@ -1513,6 +1604,7 @@ const handler = async (req: Request): Promise<Response> => {
                         universidad: universidad,
                         grado_academico: grado_academico,
                         curso_admision: curso_admision,
+                        asignaturas_matriculadas: [],
                         asignaturas_cursadas: [],
                         asignaturas_aprobadas: [],
                         rol: "Estudiante",
@@ -1749,7 +1841,10 @@ const handler = async (req: Request): Promise<Response> => {
         else if(path === "/titulacion"){
             const data = await req.json();
             const nombre: string | undefined = data.nombre;
-            const universidades: string[] | undefined = data.universidades;
+            const universidades: {
+                nombre: string,
+                principal: boolean,
+            }[] | undefined = data.universidades;
             const grados_aptos: string[] | undefined = data.grados_aptos;
             const cursos: number | undefined = data.cursos;
             const convocatorias: number | undefined = data.convocatorias;
@@ -2124,7 +2219,7 @@ const handler = async (req: Request): Promise<Response> => {
                 }
 
                 const persona = docentes_exists.find((docente) => {
-                    if(docente.rol !== "Coordinador" && docente.rol !== "Profesor"){
+                    if(docente.rol !== "Coordinador" && docente.rol !== "Coordinador general" && docente.rol !== "Profesor"){
                         return docente;
                     }
                 });
@@ -2943,7 +3038,7 @@ const handler = async (req: Request): Promise<Response> => {
             }
 
             const director_rol = director_exists.find((docente) => {
-                if(docente.rol !== "Profesor" && docente.rol !== "Coordinador"){
+                if(docente.rol !== "Profesor" && docente.rol !== "Coordinador" && docente.rol !== "Coordinador general"){
                     return docente
                 }
             });
@@ -2975,7 +3070,7 @@ const handler = async (req: Request): Promise<Response> => {
             }
 
             const tribunal_rol = tribunal_exists.find((docente) => {
-                if(docente.rol !== "Profesor" && docente.rol !== "Coordinador"){
+                if(docente.rol !== "Profesor" && docente.rol !== "Coordinador" && docente.rol !== "Coordinador general"){
                     return docente;
                 }
             });
