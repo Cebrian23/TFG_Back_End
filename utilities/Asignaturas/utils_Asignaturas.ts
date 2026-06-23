@@ -1,6 +1,6 @@
 import { ObjectId } from "npm:mongodb";
 import { AsignaturasCollection, PersonasCollection } from "../../db/connection.ts";
-import { Alumno, AlumnoDB, Asignatura_curso_DB, Asignatura_curso_short, Asignatura_Short, AsignaturaDB } from "../../types/Asignaturas/Asignatura.ts";
+import { Alumno, AlumnoDB, Asignatura_alumno, Asignatura_alumno_DB, Asignatura_curso_DB, Asignatura_curso_short, Asignatura_Short, AsignaturaDB } from "../../types/Asignaturas/Asignatura.ts";
 import { Coordinador_Short } from "../../types/Personas/Coordinador.ts";
 import { Estudiante_Short, EstudianteDB } from "../../types/Personas/Estudiante.ts";
 import { Profesor_Short } from "../../types/Personas/Profesor.ts";
@@ -138,7 +138,7 @@ export const Transform_Curso = async (curso_in: Asignatura_curso_DB): Promise<Re
 
     if(estudiantes_extraordinaria.length !== estudiantes_extraordinaria_id.length){
         return new Response(
-            JSON.stringify({error: `${estudiantes_extraordinaria.length - estudiantes_extraordinaria_id.length} estudiantes en extraordinaria no encontrados`}),
+            JSON.stringify({error: `${estudiantes_extraordinaria_id.length - estudiantes_extraordinaria.length} estudiantes en extraordinaria no encontrados`}),
             {
                 status: 404,
             }
@@ -403,4 +403,80 @@ export const Short_Asignatura_Curso_Docs_DB = async (curso: Asignatura_curso_DB,
             status: 200,
         }
     )
+}
+
+export const Transform_Asignatura_alumno_DB = async (asig: Asignatura_alumno_DB): Promise<Response> => {
+    const asignatura = await AsignaturasCollection.findOne({_id: asig.asignatura});
+    
+    if(!asignatura){
+        return new Response(
+            JSON.stringify({error: `Asignatura con id ${asig.asignatura} no encontrada`}),
+            {
+                status: 404,
+            }
+        );
+    }
+    else if(asignatura.tipo !== "Asignatura"){
+        return new Response(
+            JSON.stringify({error: `Se ha encontrado un bloque de TFMs en vez de una asignatura`}),
+            {
+                status: 406,
+            }
+        );
+    }
+
+    const new_asig: Asignatura_alumno = {
+        id: asig._id!.toString(),
+        asignatura: asignatura._id.toString(),
+        convocatoria_name: asig.convocatoria_name,
+        convocatoria_num: asig.convocatoria_num,
+        curso: asig.curso,
+        nota: asig.nota,
+        tipo: asig.tipo,
+    }
+
+    return new Response(
+        JSON.stringify(new_asig),
+        {
+            status: 200,
+        }
+    );
+}
+
+export const Transform_Asignaturas_MatriculadasPresentadas = async (asig: {asignatura: ObjectId, curso_academico: string, tipo: "Asignatura"}) => {
+    const asignatura = await AsignaturasCollection.findOne({_id: asig.asignatura});
+    
+    if(!asignatura){
+        return new Response(
+            JSON.stringify({error: `Asignatura con id ${asig.asignatura} no encontrada`}),
+            {
+                status: 404,
+            }
+        );
+    }
+    else if(asignatura.tipo !== "Asignatura"){
+        return new Response(
+            JSON.stringify({error: `Se ha encontrado un bloque de TFMs en vez de una asignatura`}),
+            {
+                status: 406,
+            }
+        );
+    }
+
+    const new_asig: {
+        asignatura: string,
+        curso_academico: string,
+        tipo: "Asignatura"
+    } = {
+        asignatura: asignatura._id.toString(),
+        curso_academico: asig.curso_academico,
+        tipo: asig.tipo,
+    }
+
+    return new Response(
+        JSON.stringify(new_asig),
+        {
+            status: 200,
+        }
+    );
 }
