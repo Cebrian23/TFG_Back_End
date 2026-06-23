@@ -14,13 +14,14 @@ export const Transform_Coordinador = (coordinador: CoordinadorDB): Coordinador =
     }
 }
 
-export const Short_Coordinador_DB = (persona: CoordinadorDB): Coordinador_Short => {
+export const Short_Coordinador_DB = (coordinador: CoordinadorDB): Coordinador_Short => {
     return{
-        id: persona._id!.toString(),
-        nombre: persona.nombre,
-        apellido_1: persona.apellido_1,
-        apellido_2: persona.apellido_2,
-        email: persona.email,
-        rol: persona.rol,
+        id: coordinador._id!.toString(),
+        nombre: coordinador.nombre,
+        apellido_1: coordinador.apellido_1,
+        apellido_2: coordinador.apellido_2,
+        email: coordinador.email,
+        universidad: coordinador.universidad,
+        rol: coordinador.rol,
     };
 }

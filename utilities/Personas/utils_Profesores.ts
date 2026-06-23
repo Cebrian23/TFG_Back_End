@@ -21,6 +21,7 @@ export const Short_Profesor_DB = (profesor: ProfesorDB): Profesor_Short => {
         apellido_1: profesor.apellido_1,
         apellido_2: profesor.apellido_2,
         email: profesor.email,
+        universidad: profesor.universidad,
         rol: profesor.rol,
     };
 }
