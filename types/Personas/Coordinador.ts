@@ -31,5 +31,6 @@ export type Coordinador_Short = {
     apellido_1: string,
     apellido_2?: string,
     email: string,
+    universidad: string,
     rol: "Coordinador" | "Coordinador general",
 }

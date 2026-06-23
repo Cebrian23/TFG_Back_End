@@ -26,10 +26,11 @@ export type Profesor = {
 }
 
 export type Profesor_Short = {
-    id: string;
-    nombre: string;
-    apellido_1: string;
-    apellido_2?: string;
-    email: string;
+    id: string,
+    nombre: string,
+    apellido_1: string,
+    apellido_2?: string,
+    email: string,
+    universidad: string,
     rol: "Profesor",
 }
