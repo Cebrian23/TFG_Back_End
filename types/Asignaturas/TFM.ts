@@ -7,7 +7,9 @@ import { Convocatoria } from "./Convocatoria.ts";
 export type TFM_Block_DB = OptionalId<{
     curso: "2º" | string,
     creditos: number,
-    TFMs: TFM_DB[]
+    //TFM: TFM_DB[],
+    cursos: TFM_Block_Curso_DB[],
+    optatividad: "Obligatoria",
     tipo: "Bloque TFMs",
 }>
 
@@ -16,6 +18,7 @@ export type TFM_Block = {
     curso: "2º" | string,
     creditos: number,
     TFM: TFM[],
+    optatividad: "Obligatoria",
     tipo: "Bloque TFMs",
 }
 
@@ -24,11 +27,13 @@ export type TFM_Block_Short = {
     curso: "2º" | string,
     creditos: number,
     tipo: "Bloque TFMs",
+    titulacion: string,
 }
 
 export type TFM_Block_Curso_DB = {
     id: ObjectId,
     nombre: string,
+    alumnos: ObjectId[],
     TFM: TFM_DB[],
     tipo: "Curso TFM",
 }
@@ -36,6 +41,7 @@ export type TFM_Block_Curso_DB = {
 export type TFM_Block_Curso = {
     id: string,
     nombre: string,
+    alumnos: Estudiante_Short[],
     TFM: TFM[],
     tipo: "Curso TFM",
 }

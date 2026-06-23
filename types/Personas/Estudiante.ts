@@ -1,4 +1,4 @@
-import { OptionalId } from "npm:mongodb";
+import { ObjectId, OptionalId } from "npm:mongodb";
 import { Asignatura_alumno, Asignatura_alumno_DB } from "../Asignaturas/Asignatura.ts";
 import { TFM_alumno, TFM_alumno_DB } from "../Asignaturas/TFM.ts";
 
@@ -16,12 +16,18 @@ export type EstudianteDB = OptionalId<{
     universidad: string,
     curso_admision: string,
     asignaturas_matriculadas: {
-        nombre: string,
+        asignatura: ObjectId,
         curso_academico: string,
-        tipo: string,
+        tipo: "Asignatura" | "TFM",
     }[],
-    asignaturas_cursadas: (TFM_alumno_DB | Asignatura_alumno_DB)[],
+    asignaturas_presentadas: {
+        asignatura: ObjectId,
+        curso_academico: string,
+        tipo: "Asignatura" | "TFM",
+    }[],
+    convocatorias_cursadas: (TFM_alumno_DB | Asignatura_alumno_DB)[],
     asignaturas_aprobadas: (TFM_alumno_DB | Asignatura_alumno_DB)[],
+    graduado: boolean,
 }>
 
 export type Estudiante = {
@@ -37,12 +43,18 @@ export type Estudiante = {
     universidad: string,
     curso_admision: string,
     asignaturas_matriculadas: {
-        nombre: string,
+        asignatura: string,
         curso_academico: string,
-        tipo: string,
+        tipo: "Asignatura" | "TFM",
     }[],
-    asignaturas_cursadas: (TFM_alumno | Asignatura_alumno)[],
+    asignaturas_presentadas: {
+        asignatura: string,
+        curso_academico: string,
+        tipo: "Asignatura" | "TFM",
+    }[],
+    convocatorias_cursadas: (TFM_alumno | Asignatura_alumno)[],
     asignaturas_aprobadas: (TFM_alumno | Asignatura_alumno)[],
+    graduado: boolean,
 }
 
 export type Estudiante_Short = {
@@ -52,5 +64,7 @@ export type Estudiante_Short = {
     apellido_2?: string,
     DNI: string,
     email: string,
+    universidad: string,
+    curso_admision: string,
     rol: "Estudiante",
 }
