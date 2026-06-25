@@ -1,12 +1,61 @@
 import { ObjectId } from "npm:mongodb";
 import { AsignaturasCollection, PersonasCollection, TitulacionesCollection } from "../../db/connection.ts";
-import { TFM, TFM_alumno, TFM_alumno_DB, TFM_Block_Curso_DB, TFM_Block_DB, TFM_DB } from "../../types/Asignaturas/TFM.ts";
+import { TFM, TFM_alumno, TFM_alumno_DB, TFM_Block_Curso, TFM_Block_Curso_DB, TFM_Block_DB, TFM_DB } from "../../types/Asignaturas/TFM.ts";
 import { Profesor_Short, ProfesorDB } from "../../types/Personas/Profesor.ts";
 import { Short_Profesor_DB } from "../Personas/utils_Profesores.ts";
 import { Short_Estudiante_DB } from "../Personas/utils_Estudiantes.ts";
 import { Short_Coordinador_DB } from "../Personas/utils_Coordinadores.ts";
 import { Coordinador_Short, CoordinadorDB } from "../../types/Personas/Coordinador.ts";
 import { EstudianteDB } from "../../types/Personas/Estudiante.ts";
+
+export const Transform_Block = async (bloque: TFM_Block_DB) => {
+    const titulacion = await TitulacionesCollection.findOne({TFM: bloque._id!});
+
+    if(!titulacion){
+        return new Response(
+            JSON.stringify({error: `Titulación del bloque de TFMs con id ${bloque._id} no encontrada`}),
+            {
+                status: 404,
+            }
+        );
+    }
+
+    const cursos_response = await Promise.all(bloque.cursos.map((curso) => Transform_Curso_TFM(curso)));
+
+    const curso_error = cursos_response.find((cursito) => {
+        if(cursito.status !== 200){
+            return cursito;
+        }
+    });
+
+    if(curso_error !== undefined){
+        return new Response(
+            JSON.stringify(await curso_error.json()),
+            {
+                status: curso_error.status,
+            }
+        );
+    }
+
+    const cursos: TFM_Block_Curso[] = await Promise.all(cursos_response.map(async (cursito) => await cursito.json()));
+
+    return new Response(
+        JSON.stringify(
+            {
+                id: bloque._id!.toString(),
+                titulacion: titulacion.nombre,
+                curso: bloque.curso,
+                creditos: bloque.creditos,
+                cursos: cursos,
+                optatividad: bloque.optatividad,
+                tipo: "Bloque TFMs",
+            }
+        ),
+        {
+            status: 200,
+        }
+    );
+}
 
 export const Transform_Curso_TFM = async (curso: TFM_Block_Curso_DB): Promise<Response> => {
     const alumnosDB = await PersonasCollection.find({_id: {$in: curso.alumnos}}).toArray();
@@ -192,8 +241,8 @@ export const Short_TFM_Block = async (tfm: TFM_Block_DB): Promise<Response> => {
             {
                 id: tfm._id!.toString(),
                 titulacion: titulacion.nombre,
-                creditos: tfm.creditos,
                 curso: tfm.curso,
+                creditos: tfm.creditos,
                 optatividad: tfm.optatividad,
                 tipo: "Bloque TFMs",
             }
