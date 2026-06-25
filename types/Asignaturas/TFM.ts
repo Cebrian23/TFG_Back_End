@@ -15,19 +15,22 @@ export type TFM_Block_DB = OptionalId<{
 
 export type TFM_Block = {
     id: string,
+    titulacion: string,
     curso: "2º" | string,
     creditos: number,
-    TFM: TFM[],
+    cursos: TFM_Block_Curso[],
+    //TFM: TFM[],
     optatividad: "Obligatoria",
     tipo: "Bloque TFMs",
 }
 
 export type TFM_Block_Short = {
     id: string,
+    titulacion: string,
     curso: "2º" | string,
     creditos: number,
+    optatividad: "Obligatoria",
     tipo: "Bloque TFMs",
-    titulacion: string,
 }
 
 export type TFM_Block_Curso_DB = {
