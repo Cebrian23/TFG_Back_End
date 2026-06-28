@@ -443,7 +443,7 @@ export const Transform_Asignatura_alumno_DB = async (asig: Asignatura_alumno_DB)
     );
 }
 
-export const Transform_Asignaturas_MatriculadasPresentadas = async (asig: {asignatura: ObjectId, curso_academico: string, tipo: "Asignatura"}) => {
+export const Transform_Asignaturas_MatriculadasPresentadas = async (asig: {asignatura: ObjectId, curso_academico: string, tipo: "Asignatura"}): Promise<Response> => {
     const asignatura = await AsignaturasCollection.findOne({_id: asig.asignatura});
     
     if(!asignatura){
@@ -475,6 +475,123 @@ export const Transform_Asignaturas_MatriculadasPresentadas = async (asig: {asign
 
     return new Response(
         JSON.stringify(new_asig),
+        {
+            status: 200,
+        }
+    );
+}
+
+export const Transform_Asignaturas_Notas = async (asig: {asignatura: string, curso: string, convocatoria: string, universidad: string, alumnos: AlumnoDB[], docentes: ObjectId[]}): Promise<Response> => {
+    const alumnos_exists = await Promise.all(asig.alumnos.map(async (alumno) => await Transform_Alumno(alumno)));
+
+    const alumno_error = alumnos_exists.find((response) => {
+        if(response.status !== 200){
+            return response;
+        }
+    });
+
+    if(alumno_error !== undefined){
+        return new Response(
+            JSON.stringify(await alumno_error.json()),
+            {
+                status: alumno_error.status,
+            }
+        )
+    }
+
+    const estudiantes:{
+        estudiante: Estudiante_Short,
+        convocatoria_num: string,
+        convocatoria_name: "Ordinaria" | "Extraordinaria",
+        nota: number | "Sin calificar" | "No presentado",
+    }[] = await Promise.all(alumnos_exists.map(async (alumno) => await alumno.json()));
+
+    const alumnos: {
+        estudiante: Estudiante_Short,
+        nota: number | string,
+    }[] = [];
+
+    estudiantes.forEach((alumno) => {
+        if(alumno.estudiante.universidad === asig.universidad){
+            alumnos.push(
+                {
+                    estudiante: (alumno.estudiante as Estudiante_Short),
+                    nota: alumno.nota,
+                }
+            );
+        }
+    });
+
+    const docentes_exists = await PersonasCollection.find({_id: {$in: asig.docentes}}).toArray();
+
+    if(asig.docentes.length !== docentes_exists.length){
+        return new Response(
+            JSON.stringify({error: `${asig.docentes.length - docentes_exists.length} docentes no encontrados`}),
+            {
+                status: 404,
+            }
+        );
+    }
+
+    const docente_error = docentes_exists.find((docente) => {
+        if(docente.rol !== "Coordinador" && docente.rol !== "Coordinador general" && docente.rol !== "Profesor"){
+            return docente;
+        }
+    });
+
+    if(docente_error !== undefined){
+        return new Response(
+            JSON.stringify({error: `Persona con rol de ${docente_error.rol.toLowerCase()} e email ${docente_error.email} encontrado en vez de un coordinador o un profesor`}),
+            {
+                status: 406,
+            }
+        );
+    }
+
+    const docenteUniCoord = docentes_exists.find((docente) => {
+        if((docente.rol === "Coordinador" || docente.rol === "Coordinador general" || docente.rol === "Profesor") && docente.universidad === asig.universidad){
+            return docente;
+        }
+    });
+
+    let docenteInfo = false;
+
+    if(docenteUniCoord !== undefined){
+        docenteInfo = true;
+    }
+
+    const new_docentes: (Profesor_Short | Coordinador_Short)[] = [];
+
+    docentes_exists.forEach((docente) => {
+        if((docente.rol === "Coordinador" || docente.rol === "Coordinador general") && docente.universidad === asig.universidad){
+            new_docentes.push(Short_Coordinador_DB(docente));
+        }
+        else if(docente.rol === "Profesor" && docente.universidad === asig.universidad){
+            new_docentes.push(Short_Profesor_DB(docente));
+        }
+    });
+
+    const asig_data: {
+        asignatura: string,
+        curso: string,
+        convocatoria: string,
+        docentesUniCoordinador: boolean,
+        docentes: (Coordinador_Short | Profesor_Short)[],
+        alumnos: {
+            estudiante: Estudiante_Short,
+            nota: number | string,
+        }[]
+    } = {
+        asignatura: asig.asignatura,
+        curso: asig.curso,
+        convocatoria: asig.convocatoria,
+        docentesUniCoordinador: docenteInfo,
+        docentes: new_docentes,
+        alumnos: alumnos,
+    };    
+
+    return new Response(
+        JSON.stringify(asig_data),
         {
             status: 200,
         }
