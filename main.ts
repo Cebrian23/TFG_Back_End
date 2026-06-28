@@ -5,7 +5,7 @@ import { Short_Coordinador_DB, Transform_Coordinador } from "./utilities/Persona
 import { Short_Profesor_DB, Transform_Profesor } from "./utilities/Personas/utils_Profesores.ts";
 import { Transform_Administrativo } from "./utilities/Personas/utils_Administrativos.ts";
 import { Short_Estudiante_DB, Transform_Estudiante } from "./utilities/Personas/utils_Estudiantes.ts";
-import { EstudianteDB } from "./types/Personas/Estudiante.ts";
+import { Estudiante_Short, EstudianteDB } from "./types/Personas/Estudiante.ts";
 import { Profesor_Short, ProfesorDB } from "./types/Personas/Profesor.ts";
 import { Coordinador_Short, CoordinadorDB } from "./types/Personas/Coordinador.ts";
 import { Administrativo_Short, AdministrativoDB } from "./types/Personas/Administrativo.ts";
@@ -14,7 +14,7 @@ import { Validate_Email } from "./utilities/Validaciones/Validate_Email.ts";
 import { Persona_To_Short_DB } from "./utilities/Personas/utils_Persona.ts";
 import { Transform_Block, Transform_Curso_TFM } from "./utilities/Asignaturas/utils_TFM.ts";
 import { Asignatura_curso_DB, Asignatura_curso_docs_short, Asignatura_curso, AlumnoDB, Asignatura_alumno_DB, AsignaturaDB } from "./types/Asignaturas/Asignatura.ts";
-import { Short_Asignatura_Curso_Docs_DB, Transform_Curso, Transform_Alumno } from "./utilities/Asignaturas/utils_Asignaturas.ts";
+import { Short_Asignatura_Curso_Docs_DB, Transform_Curso, Transform_Alumno, Transform_Asignaturas_Notas } from "./utilities/Asignaturas/utils_Asignaturas.ts";
 import { Short_Titulacion, Transform_Titulacion } from "./utilities/Titulacion/utils_Titulacion.ts";
 import { Error_info } from "./types/Messages/Errors.ts";
 import { Decrypt_Passwords } from "./utilities/Transforms/Transform_Passwords.ts";
@@ -983,7 +983,7 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             );
         }
-        else if(path === "/curso/notas_asignatura_single"){
+        /*else if(path === "/curso/notas_asignatura_single"){
             const asignatura: string | null = searchParams.get("asignatura");
             const curso: string | null = searchParams.get("curso");
             const universidad: string | null = searchParams.get("universidad");
@@ -1187,8 +1187,364 @@ const handler = async (req: Request): Promise<Response> => {
                     headers: headers,
                 }
             );
+        }*/
+        else if(path === "/asignaturas/nombres"){
+            const titulacion: string | null = searchParams.get("titulacion");
+
+            if(!titulacion){
+                return new Response(
+                    JSON.stringify({error: "Faltan datos para hacer la búsqueda"}),
+                    {
+                        status: 400,
+                        headers: headers
+                    }
+                );
+            }
+
+            const titulacion_exists = await TitulacionesCollection.findOne({_id: new ObjectId(titulacion)});
+
+            if(!titulacion_exists){
+                return new Response(
+                    JSON.stringify({error: `Titulación con id ${titulacion} no encontrada`}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const asignaturas_exists = await AsignaturasCollection.find({_id: {$in: titulacion_exists.asignaturas}}).toArray();
+
+            if(titulacion_exists.asignaturas.length !== asignaturas_exists.length){
+                return new Response(
+                    JSON.stringify({error: `${titulacion_exists.asignaturas.length - asignaturas_exists.length} asignaturas no encontradas`}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const asignatura_error = asignaturas_exists.find((asig) => {
+                if(asig.tipo !== "Asignatura"){
+                    return asig;
+                }
+            });
+
+            if(asignatura_error !== undefined){
+                return new Response(
+                    JSON.stringify({error: "Se ha encontrado un bloque de TFMs en vez de una asignatura"}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const nombres: string[] = [];
+            
+            asignaturas_exists.forEach((asig) => {
+                if(asig.tipo === "Asignatura"){
+                    nombres.push(asig.nombre);
+                }
+            });
+
+            return new Response(
+                JSON.stringify(nombres),
+                {
+                    status: 200,
+                    headers: headers,
+                }
+            );
         }
-        else if(path === ""){}
+        else if(path === "/asignaturas/notas_curso"){
+            const titulacion: string | null = searchParams.get("titulacion");
+            const curso: string | null = searchParams.get("curso");
+            const universidad: string | null = searchParams.get("universidad");
+            const convocatoria: "Ordinaria" | "Extraordinaria" | string | null = searchParams.get("convocatoria");
+
+            if(!titulacion || !curso || !universidad || !convocatoria){
+                return new Response(
+                    JSON.stringify({error: "Faltan datos para hacer la búsqueda"}),
+                    {
+                        status: 400,
+                        headers: headers
+                    }
+                );
+            }
+
+            const titulacion_exists = await TitulacionesCollection.findOne({_id: new ObjectId(titulacion)});
+
+            if(!titulacion_exists){
+                return new Response(
+                    JSON.stringify({error: `Titulación con id ${titulacion} no encontrada`}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const asignaturas_exists = await AsignaturasCollection.find({_id: {$in: titulacion_exists.asignaturas}}).toArray();
+
+            if(titulacion_exists.asignaturas.length !== asignaturas_exists.length){
+                return new Response(
+                    JSON.stringify({error: `${titulacion_exists.asignaturas.length - asignaturas_exists.length} asignaturas no encontradas`}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const asignatura_error = asignaturas_exists.find((asig) => {
+                if(asig.tipo !== "Asignatura"){
+                    return asig;
+                }
+            });
+
+            if(asignatura_error !== undefined){
+                return new Response(
+                    JSON.stringify({error: "Se ha encontrado un bloque de TFMs en vez de una asignatura"}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const cursos_exists: {
+                asignatura: string,
+                curso: Asignatura_curso_DB,
+            }[] = [];
+
+            asignaturas_exists.forEach((asig) => {
+                if(asig.tipo === "Asignatura"){
+                    asig.cursos_academicos.forEach((cursito) => {
+                        if(cursito.curso_academico === curso){
+                            cursos_exists.push(
+                                {
+                                    asignatura: asig.nombre,
+                                    curso: cursito,
+                                }
+                            );
+                        }
+                    });
+                }
+            });
+
+            if(convocatoria === "Ordinaria"){
+                const curso_data = await Promise.all(cursos_exists.map(async (cursito) => await Transform_Asignaturas_Notas(
+                    {
+                        asignatura: cursito.asignatura,
+                        curso: cursito.curso.curso_academico,
+                        convocatoria: "Ordinaria",
+                        universidad: universidad,
+                        alumnos: cursito.curso.alumnos_ordinaria,
+                        docentes: cursito.curso.profesores,
+                    }
+                )));
+
+                const curso_error = curso_data.find((data) => {
+                    if(data.status !== 200){
+                        return data;
+                    }
+                });
+
+                if(curso_error !== undefined){
+                    return new Response(
+                        JSON.stringify(await curso_error.json()),
+                        {
+                            status: curso_error.status,
+                            headers: headers,
+                        }
+                    );
+                }
+
+                const respuesta: {
+                    asignatura: string,
+                    curso: string,
+                    convocatoria: string,
+                    docentesUniCoordinador: boolean,
+                    docentes: (Coordinador_Short | Profesor_Short)[];
+                    alumnos: {
+                        estudiante: Estudiante_Short,
+                        nota: number | string,
+                    }[]
+                }[] = await Promise.all(curso_data.map(async (data) => await data.json()));
+
+                return new Response(
+                    JSON.stringify(respuesta),
+                    {
+                        status: 200,
+                        headers: headers,
+                    }
+                );
+            }
+            else if(convocatoria === "Extraordinaria"){
+                const curso_data = await Promise.all(cursos_exists.map(async (cursito) => await Transform_Asignaturas_Notas(
+                    {
+                        asignatura: cursito.asignatura,
+                        curso: cursito.curso.curso_academico,
+                        convocatoria: "Extraordinaria",
+                        universidad: universidad,
+                        alumnos: cursito.curso.alumnos_extraordinaria,
+                        docentes: cursito.curso.profesores,
+                    }
+                )));
+
+                const curso_error = curso_data.find((data) => {
+                    if(data.status !== 200){
+                        return data;
+                    }
+                });
+
+                if(curso_error !== undefined){
+                    return new Response(
+                        JSON.stringify(await curso_error.json()),
+                        {
+                            status: curso_error.status,
+                            headers: headers,
+                        }
+                    );
+                }
+
+                const respuesta: {
+                    asignatura: string,
+                    curso: string,
+                    convocatoria: string,
+                    docentesUniCoordinador: boolean,
+                    docentes: (Coordinador_Short | Profesor_Short)[];
+                    alumnos: {
+                        estudiante: Estudiante_Short,
+                        nota: number | string,
+                    }[]
+                }[] = await Promise.all(curso_data.map(async (data) => await data.json()));
+
+                return new Response(
+                    JSON.stringify(respuesta),
+                    {
+                        status: 200,
+                        headers: headers,
+                    }
+                );
+            }
+            else if(convocatoria === "Ambas"){
+                const curso_data_ordinaria = await Promise.all(cursos_exists.map(async (cursito) => await Transform_Asignaturas_Notas(
+                    {
+                        asignatura: cursito.asignatura,
+                        curso: cursito.curso.curso_academico,
+                        convocatoria: "Ordinaria",
+                        universidad: universidad,
+                        alumnos: cursito.curso.alumnos_ordinaria,
+                        docentes: cursito.curso.profesores,
+                    }
+                )));
+
+                const curso_error_ordinaria = curso_data_ordinaria.find((data) => {
+                    if(data.status !== 200){
+                        return data;
+                    }
+                });
+
+                if(curso_error_ordinaria !== undefined){
+                    return new Response(
+                        JSON.stringify(await curso_error_ordinaria.json()),
+                        {
+                            status: curso_error_ordinaria.status,
+                            headers: headers,
+                        }
+                    );
+                }
+
+                const respuesta_ordinaria: {
+                    asignatura: string,
+                    curso: string,
+                    convocatoria: string,
+                    docentesUniCoordinador: boolean,
+                    docentes: (Coordinador_Short | Profesor_Short)[],
+                    alumnos: {
+                        estudiante: Estudiante_Short,
+                        nota: number | string,
+                    }[]
+                }[] = await Promise.all(curso_data_ordinaria.map(async (data) => await data.json()));
+
+                const curso_data_extraordinaria = await Promise.all(cursos_exists.map(async (cursito) => await Transform_Asignaturas_Notas(
+                    {
+                        asignatura: cursito.asignatura,
+                        curso: cursito.curso.curso_academico,
+                        convocatoria: "Extraordinaria",
+                        universidad: universidad,
+                        alumnos: cursito.curso.alumnos_extraordinaria,
+                        docentes: cursito.curso.profesores,
+                    }
+                )));
+
+                const curso_error_extraordinaria = curso_data_extraordinaria.find((data) => {
+                    if(data.status !== 200){
+                        return data;
+                    }
+                });
+
+                if(curso_error_extraordinaria !== undefined){
+                    return new Response(
+                        JSON.stringify(await curso_error_extraordinaria.json()),
+                        {
+                            status: curso_error_extraordinaria.status,
+                            headers: headers,
+                        }
+                    );
+                }
+
+                const respuesta_extraordinaria: {
+                    asignatura: string,
+                    curso: string,
+                    convocatoria: string,
+                    docentesUniCoordinador: boolean,
+                    docentes: (Coordinador_Short | Profesor_Short)[],
+                    alumnos: {
+                        estudiante: Estudiante_Short,
+                        nota: number | string,
+                    }[]
+                }[] = await Promise.all(curso_data_extraordinaria.map(async (data) => await data.json()));
+                
+                const respuesta: {
+                    asignatura: string,
+                    curso: string,
+                    convocatoria: string,
+                    docentesUniCoordinador: boolean,
+                    docentes: (Coordinador_Short | Profesor_Short)[];
+                    alumnos: {
+                        estudiante: Estudiante_Short,
+                        nota: number | string,
+                    }[]
+                }[] = [];
+
+                respuesta_ordinaria.forEach((resp) => {
+                    respuesta.push(resp);
+                });
+
+                respuesta_extraordinaria.forEach((resp) => {
+                    respuesta.push(resp);
+                });
+
+                return new Response(
+                    JSON.stringify(respuesta),
+                    {
+                        status: 200,
+                        headers: headers,
+                    }
+                );
+            }
+
+            return new Response(
+                JSON.stringify({error: "Error al procesar"}),
+                {
+                    status: 404,
+                    headers: headers,
+                }
+            );
+        }
         else if(path === "/curso_TFM"){
             const titulacion = searchParams.get("titulacion");
 
@@ -1858,7 +2214,6 @@ const handler = async (req: Request): Promise<Response> => {
         }
         else if(path === "/bloque_TFM"){
             const bloque = searchParams.get("bloque");
-            console.log();
 
             if(!bloque){
                 return new Response(
@@ -3334,17 +3689,21 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
-            TFM_Block_Exists.cursos.forEach((cursito) => {
+            const curso_error = TFM_Block_Exists.cursos.find((cursito) => {
                 if(cursito.nombre === nombre){
-                    return new Response(
-                        JSON.stringify({error: `${nombre} ya existente en la asignatura`}),
-                        {
-                            status: 406,
-                            headers: headers,
-                        }
-                    );
+                    return cursito;
                 }
             });
+
+            if(curso_error !== undefined){
+                return new Response(
+                    JSON.stringify({error: `${curso_error.nombre} ya existente en la asignatura`}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
 
             const estudiantes_exists = await PersonasCollection.find({email: {$in: alumnos}}).toArray();
 
@@ -3408,7 +3767,27 @@ const handler = async (req: Request): Promise<Response> => {
 
             if(asignaturas_aprobadas_error !== undefined){
                 return new Response(
-                    JSON.stringify({error: `Persona con email ${asignaturas_aprobadas_error.email} no tiene todos los creditos obligatorios u optativos aprobados para defender el TFM`}),
+                    JSON.stringify({error: `Alumno con email ${asignaturas_aprobadas_error.email} no tiene todos los creditos obligatorios u optativos aprobados para defender el TFM`}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const matricula_error = estudiantes_exists.find((alumno) => {
+                if(alumno.rol === "Estudiante"){
+                    alumno.asignaturas_matriculadas.forEach((asig) => {
+                        if(asig.asignatura.toString() === TFM_Block_Exists._id.toString() && asig.curso_academico === nombre){
+                            return alumno;
+                        }
+                    });
+                }
+            });
+
+            if(matricula_error !== undefined){
+                return new Response(
+                    JSON.stringify({error: `Alumno con email ${matricula_error.email} ya está matriculado en el ${nombre}`}),
                     {
                         status: 406,
                         headers: headers,
@@ -3436,7 +3815,7 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
-            estudiantes_exists.forEach((alumno) => {
+            estudiantes_exists.forEach(async (alumno) => {
                 if(alumno.rol === "Estudiante"){
                     alumno.asignaturas_matriculadas.push(
                         {
@@ -3445,6 +3824,27 @@ const handler = async (req: Request): Promise<Response> => {
                             tipo: "TFM",
                         }
                     );
+
+                    const { modifiedCount } = await PersonasCollection.updateOne(
+                        {
+                            _id: alumno._id,
+                        },
+                        {
+                            $set: {
+                                asignaturas_matriculadas: alumno.asignaturas_matriculadas,
+                            }
+                        }
+                    );
+
+                    if(modifiedCount === 0){
+                        return new Response(
+                            JSON.stringify({error: `No se ha modificado las asignaturas matriculadas del alumno con email ${alumno.email}`}),
+                            {
+                                status: 404,
+                                headers: headers,
+                            }
+                        );
+                    }
                 }
             });
 
