@@ -2131,8 +2131,6 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
-            asignaturas_exists.push(tfm_block);
-
             const alumnos = await PersonasCollection.find({_id: {$in: titulacion_exists.alumnos}, rol: "Estudiante"}).toArray();
             const alumnosError = alumnos.find((alumno) => {
                 if(alumno.rol !== "Estudiante"){
@@ -2168,7 +2166,7 @@ const handler = async (req: Request): Promise<Response> => {
             alumnosUniversidad.forEach((alumno) => {
                 alumno.asignaturas_matriculadas.forEach((asig1) => {
                     asignaturas_exists.forEach((asig2) => {
-                        if(asig2._id.toString() === asig1.asignatura.toString()){
+                        if(asig2._id.toString() === asig1.asignatura.toString() && asig1.curso_academico === curso){
                             creditos_matriculados += asig2.creditos;
                         }
                     });
@@ -2176,7 +2174,7 @@ const handler = async (req: Request): Promise<Response> => {
                 
                 alumno.asignaturas_presentadas.forEach((asig1) => {
                     asignaturas_exists.forEach((asig2) => {
-                        if(asig2._id.toString() === asig1.asignatura.toString()){
+                        if(asig2._id.toString() === asig1.asignatura.toString() && asig1.curso_academico === curso){
                             creditos_presentados += asig2.creditos;
                         }
                     });
@@ -2184,7 +2182,7 @@ const handler = async (req: Request): Promise<Response> => {
 
                 alumno.asignaturas_aprobadas.forEach((asig1) => {
                     asignaturas_exists.forEach((asig2) => {
-                        if((asig1.tipo === "Asignatura" && asig2._id.toString() === asig1.asignatura.toString()) || (asig1.tipo === "TFM" && asig1.bloque.toString() === asig2._id.toString())){
+                        if((asig1.tipo === "Asignatura" && asig2._id.toString() === asig1.asignatura.toString() && asig1.curso === curso) || (asig1.tipo === "TFM" && asig1.bloque.toString() === asig2._id.toString() && asig1.curso_academico === curso)){
                             creditos_aprobados += asig2.creditos;
                         }
                     });
