@@ -30,6 +30,7 @@ export type TFM_Block_Short = {
     curso: "2º" | string,
     creditos: number,
     optatividad: "Obligatoria",
+    cursos: number,
     tipo: "Bloque TFMs",
 }
 
