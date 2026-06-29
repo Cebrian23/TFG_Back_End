@@ -4336,7 +4336,46 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
+            const TFM_curso_exists = alumno_exists.convocatorias_cursadas.find((asig) => {
+                if((asig.tipo === "TFM") && (asig.curso_academico === curso) && (asig.convocatoria.nombre === convocatoria)){
+                    return asig;
+                }
+            });
+
+            if(TFM_curso_exists !== undefined){
+                return new Response(
+                    JSON.stringify({error: `Alumno con email ${alumno_exists.email} ya se presentó en el ${curso.toLowerCase()} en la convocatoria ${convocatoria}`}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const TFM_aprobado = alumno_exists.convocatorias_cursadas.find((asig) => {
+                if((asig.tipo === "TFM") && (Number(asig.convocatoria.nota) >= 5)){
+                    return asig;
+                }
+            });
+
+            if(TFM_aprobado !== undefined){
+                return new Response(
+                    JSON.stringify({error: `Alumno con email ${alumno_exists.email} ya ha aprobado el TFM`}),
+                    {
+                        headers: headers,
+                    }
+                );
+            }
+
             const TFM_new_ID = new ObjectId();
+
+            let convNum = 0;
+
+            alumno_exists.convocatorias_cursadas.forEach((asig) => {
+                if(asig.tipo === "TFM" && Number(asig.convocatoria_num.split("º")[0]) > convNum){
+                    convNum = Number(asig.convocatoria_num.split("º")[0]);
+                }
+            });
 
             const new_TFM: TFM_DB = {
                 _id: TFM_new_ID,
@@ -4352,6 +4391,7 @@ const handler = async (req: Request): Promise<Response> => {
                     nombre: convocatoria,
                     nota: nota,
                 },
+                convocatoria_num: `${convNum}º`,
                 tipo: "TFM",
             }
 
@@ -4401,22 +4441,6 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
-            const TFM_curso_exists = alumno_exists.convocatorias_cursadas.find((asig) => {
-                if((asig.tipo === "TFM") && (asig.curso_academico === curso) && (asig.convocatoria.nombre === convocatoria)){
-                    return asig;
-                }
-            });
-
-            if(TFM_curso_exists !== undefined){
-                return new Response(
-                    JSON.stringify({error: `Alumno con DNI ${alumno} ya se presentó en el ${curso.toLowerCase()} en la convocatoria ${convocatoria}`}),
-                    {
-                        status: 406,
-                        headers: headers,
-                    }
-                );
-            }
-
             const new_TFM_data: TFM_alumno_DB = {
                 TFM: TFM_new_ID,
                 bloque: TFM_block._id,
@@ -4428,6 +4452,7 @@ const handler = async (req: Request): Promise<Response> => {
                     nombre: convocatoria,
                     nota: nota,
                 },
+                convocatoria_num: `${convNum}º`,
                 tipo: "TFM",
             }
 
