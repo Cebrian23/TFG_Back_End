@@ -2802,8 +2802,19 @@ const handler = async (req: Request): Promise<Response> => {
             }
 
             let new_asignaturas: ObjectId[] = [];
+            let new_creditos_obligatorios = creditos_obligatorios;
 
             if(asignaturas){
+                let creditos_oblig_totales = 0;
+
+                asignaturas.forEach((asignatura) => {
+                    creditos_oblig_totales += asignatura.creditos;
+                });
+
+                if(creditos_obligatorios < creditos_oblig_totales){
+                    new_creditos_obligatorios = creditos_oblig_totales;
+                }
+
                 new_asignaturas = await Promise.all(asignaturas.map(async (asignatura) => {
                     const new_asig = await AsignaturasCollection.insertOne({
                         nombre: asignatura.nombre,
@@ -2829,7 +2840,7 @@ const handler = async (req: Request): Promise<Response> => {
                     convocatorias_disponibles: convocatorias,
                     asignaturas: new_asignaturas,
                     requisitos_TFM: {
-                        creditos_obligatorios: creditos_obligatorios,
+                        creditos_obligatorios: new_creditos_obligatorios,
                         creditos_optativos: creditos_optativos,
                     },
                     TFM: TFM_Info.insertedId,
@@ -3207,6 +3218,16 @@ const handler = async (req: Request): Promise<Response> => {
                                 }
                             }
                         });
+                    }
+
+                    if(titulacion_in.convocatorias_disponibles < conv_dinamica){
+                        return new Response(
+                            JSON.stringify({error: `Alumno con email ${alumno.email} no puede matricularse por exceder el número de convocatorias`}),
+                            {
+                                status: 406,
+                                headers: headers
+                            }
+                        );
                     }
 
                     conv_ordinaria.push(
