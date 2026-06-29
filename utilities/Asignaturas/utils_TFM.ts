@@ -86,15 +86,8 @@ export const Transform_Curso_TFM = async (curso: TFM_Block_Curso_DB): Promise<Re
 
     const TFM_transform = await Promise.all(curso.TFM.map(async (tfm) => await Transform_TFM(tfm)));
 
-    const TFMs: TFM[] = [];
-
-    const tfm_error = TFM_transform.find(async (response) => {
-        if(response.status === 200){
-            const data = await response.json();
-
-            TFMs.push(data);
-        }
-        else{
+    const tfm_error = TFM_transform.find((response) => {
+        if(response.status !== 200){
             return response;
         }
     });
@@ -107,6 +100,8 @@ export const Transform_Curso_TFM = async (curso: TFM_Block_Curso_DB): Promise<Re
             }
         );
     }
+
+    const TFMs: TFM[] = await Promise.all(TFM_transform.map(async (response) => await response.json()));
 
     return new Response(
         JSON.stringify({
