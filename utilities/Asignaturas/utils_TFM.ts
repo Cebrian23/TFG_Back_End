@@ -306,6 +306,7 @@ export const Transform_TFM_alumno_DB = async (tfm: TFM_alumno_DB) => {
         curso_academico: tfm_exists.curso_academico,
         fecha_defensa: tfm_exists.fecha_defensa,
         convocatoria: tfm_exists.convocatoria,
+        convocatoria_num: tfm_exists.convocatoria_num,
         tipo: tfm_exists.tipo,
     }
 
