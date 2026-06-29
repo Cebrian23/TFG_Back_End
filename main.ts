@@ -1926,6 +1926,8 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
+            asignaturas_exists.push(tfm_block);
+
             const alumnos = await PersonasCollection.find({_id: {$in: titulacion_exists.alumnos}, rol: "Estudiante"}).toArray();
             const alumnosError = alumnos.find((alumno) => {
                 if(alumno.rol !== "Estudiante"){
