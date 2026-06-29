@@ -7,7 +7,6 @@ import { Convocatoria } from "./Convocatoria.ts";
 export type TFM_Block_DB = OptionalId<{
     curso: "2º" | string,
     creditos: number,
-    //TFM: TFM_DB[],
     cursos: TFM_Block_Curso_DB[],
     optatividad: "Obligatoria",
     tipo: "Bloque TFMs",
@@ -19,7 +18,6 @@ export type TFM_Block = {
     curso: "2º" | string,
     creditos: number,
     cursos: TFM_Block_Curso[],
-    //TFM: TFM[],
     optatividad: "Obligatoria",
     tipo: "Bloque TFMs",
 }
@@ -60,6 +58,7 @@ export type TFM_DB = OptionalId<{
     fecha_defensa: string,
     hora_defensa: string,
     convocatoria: Convocatoria,
+    convocatoria_num: "1º" | "2º"  | "3º" | "4º" | "5º" | "6º" | string,
     tipo: "TFM",
 }>
 
@@ -74,6 +73,7 @@ export type TFM = {
     fecha_defensa: string,
     hora_defensa: string,
     convocatoria: Convocatoria,
+    convocatoria_num: "1º" | "2º"  | "3º" | "4º" | "5º" | "6º" | string,
     tipo: "TFM",
 }
 
@@ -85,6 +85,7 @@ export type TFM_alumno_DB = {
     fecha_defensa: string,
     hora_defensa: string,
     convocatoria: Convocatoria,
+    convocatoria_num: "1º" | "2º"  | "3º" | "4º" | "5º" | "6º" | string,
     tipo: "TFM",
 }
 
@@ -95,5 +96,6 @@ export type TFM_alumno = {
     curso_academico: string,
     fecha_defensa: string,
     convocatoria: Convocatoria,
+    convocatoria_num: "1º" | "2º"  | "3º" | "4º" | "5º" | "6º" | string,
     tipo: "TFM",
 }
