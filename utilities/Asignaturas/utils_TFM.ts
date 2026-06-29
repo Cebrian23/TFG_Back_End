@@ -242,6 +242,7 @@ export const Short_TFM_Block = async (tfm: TFM_Block_DB): Promise<Response> => {
                 id: tfm._id!.toString(),
                 titulacion: titulacion.nombre,
                 curso: tfm.curso,
+                cursos: tfm.cursos.length,
                 creditos: tfm.creditos,
                 optatividad: tfm.optatividad,
                 tipo: "Bloque TFMs",

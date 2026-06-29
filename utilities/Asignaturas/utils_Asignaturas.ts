@@ -296,6 +296,7 @@ export const Short_Asignatura_DB = (asignatura: AsignaturaDB): Asignatura_Short 
         id: asignatura._id!.toString(),
         nombre: asignatura.nombre,
         curso: asignatura.curso,
+        cursos_academicos: asignatura.cursos_academicos.length,
         creditos: asignatura.creditos,
         optatividad: asignatura.optatividad,
         tipo: "Asignatura",
