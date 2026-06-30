@@ -4391,7 +4391,7 @@ const handler = async (req: Request): Promise<Response> => {
                     nombre: convocatoria,
                     nota: nota,
                 },
-                convocatoria_num: `${convNum}º`,
+                convocatoria_num: `${convNum + 1}º`,
                 tipo: "TFM",
             }
 
@@ -4452,7 +4452,7 @@ const handler = async (req: Request): Promise<Response> => {
                     nombre: convocatoria,
                     nota: nota,
                 },
-                convocatoria_num: `${convNum}º`,
+                convocatoria_num: `${convNum + 1}º`,
                 tipo: "TFM",
             }
 
