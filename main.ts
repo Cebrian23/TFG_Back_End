@@ -2829,6 +2829,22 @@ const handler = async (req: Request): Promise<Response> => {
                 }));
             }
 
+            const uni_principal = universidades.find((uni) => {
+                if(uni.principal === true){
+                    return uni;
+                }
+            });
+
+            if(uni_principal === undefined){
+                return new Response(
+                    JSON.stringify({error: "No hay una universidad principal"}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
             const { insertedId } = await TitulacionesCollection.insertOne(
                 {
                     nombre: nombre,
