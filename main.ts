@@ -2163,7 +2163,19 @@ const handler = async (req: Request): Promise<Response> => {
                 surname_2 = apellido_2;
             }
 
-            const personas = await PersonasCollection.find().toArray();
+            const titulacion_exists = await TitulacionesCollection.findOne({_id: new ObjectId(titulacion)});
+
+            if(!titulacion_exists){
+                return new Response(
+                    JSON.stringify({error: "Titulación no encontrada"}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const personas = await PersonasCollection.find({_id: {$in: titulacion_exists.alumnos}}).toArray();
             const persona_email = await PersonasCollection.findOne({email: email});
             const persona_DNI = personas.find((persona) => {
                 if(Decrypt_DNI(DNI) === Decrypt_DNI(persona.DNI)){
@@ -2249,18 +2261,6 @@ const handler = async (req: Request): Promise<Response> => {
                     phone_prefix = prefijo_movil.replaceAll(" ","+");
                     phone_number = numero_movil;
                 }
-            }
-
-            const titulacion_exists = await TitulacionesCollection.findOne({_id: new ObjectId(titulacion)});
-
-            if(!titulacion_exists){
-                return new Response(
-                    JSON.stringify({error: "Titulación no encontrada"}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
             }
 
             if(rol === "Administrativo"){
