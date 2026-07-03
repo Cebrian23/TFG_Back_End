@@ -1793,27 +1793,6 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
-            /*const TFM_block_exists = await AsignaturasCollection.findOne({_id: titulacion_exists.TFM});
-
-            if(!TFM_block_exists){
-                return new Response(
-                    JSON.stringify({error: `No se ha encontrado el bloque de TFM`}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
-            }
-            else if(TFM_block_exists.tipo !== "Bloque TFMs"){
-                return new Response(
-                    JSON.stringify({error: "Se ha encontrado una asignatura en vez de un bloque de TFMs"}),
-                    {
-                        status: 406,
-                        headers: headers,
-                    }
-                );
-            }*/
-
             const alumnos_exists = await PersonasCollection.find({_id: {$in: titulacion_exists.alumnos}}).toArray();
 
             if(titulacion_exists.alumnos.length !== alumnos_exists.length){
@@ -1989,6 +1968,31 @@ const handler = async (req: Request): Promise<Response> => {
             const tasa_rendimiento = (creditos_aprobados/creditos_matriculados)*100;
             const tasa_evaluacion = (creditos_presentados/creditos_matriculados)*100;
             const tasa_exito = (creditos_aprobados/creditos_presentados)*100;
+            let tasa_egresados: string | number = (0)/100;
+
+            const num_cursos_titulacion = titulacion_exists.cursos - 1;
+            const creacion_titulacion_num = titulacion_exists.creacion;
+            const curso_num = Number(curso.split(" ")[1].split("-")[0]);
+            const alumnosMatriculados: EstudianteDB[] = [];
+            const alumnosEgresados: EstudianteDB[] = [];
+
+            if(creacion_titulacion_num > (curso_num-num_cursos_titulacion)){
+                tasa_egresados = "-";
+            }
+
+            if(tasa_egresados !== "-"){
+                alumnosUniversidad.forEach((alumno) => {
+                    if(Number(alumno.curso_admision.split(" ")[1].split("-")[0]) === (curso_num - num_cursos_titulacion)){
+                        alumnosMatriculados.push(alumno);
+                    }
+
+                    if(alumno.graduado === true){
+                        alumnosEgresados.push(alumno);
+                    }
+                });
+
+                tasa_egresados = (alumnosEgresados.length/alumnosMatriculados.length)*100;
+            }
 
             return new Response(
                 JSON.stringify(
@@ -1999,6 +2003,7 @@ const handler = async (req: Request): Promise<Response> => {
                         tasa_rendimiento: tasa_rendimiento,
                         tasa_evaluacion: tasa_evaluacion,
                         tasa_exito: tasa_exito,
+                        tasa_egresados: tasa_egresados,
                     }
                 ),
                 {
@@ -2794,11 +2799,11 @@ const handler = async (req: Request): Promise<Response> => {
             const date = new Date();
             let creationDate = 0;
 
-            if(date.getMonth() + 1 < 7){
-                creationDate = date.getFullYear() - 1;
+            if(date.getMonth() + 1 <= 9){
+                creationDate = date.getFullYear();
             }
             else{
-                creationDate = date.getFullYear();
+                creationDate = date.getFullYear() + 1;
             }
 
             let new_asignaturas: ObjectId[] = [];
@@ -3658,6 +3663,29 @@ const handler = async (req: Request): Promise<Response> => {
                     }
                 );
             }
+            
+            const currentDate = new Date();
+            if(currentDate.getMonth() + 1 < 9 && Number(curso.split(" ")[1].split("-")[0]) <= currentDate.getFullYear()){
+                return new Response(
+                    JSON.stringify({error: "No se puede calificar una asingatura antes de que empiece"}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+            else if(
+                (currentDate.getMonth() + 1 >= 9 && Number(curso.split(" ")[1].split("-")[1]) === currentDate.getFullYear()) ||
+                (Number(curso.split(" ")[1].split("-")[1]) > currentDate.getFullYear())
+            ){
+                return new Response(
+                    JSON.stringify({error: `No se puede calificar una asignatura una vez acabado el curso`}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
 
             const asignatura_exists = await AsignaturasCollection.findOne({_id: new ObjectId(asignatura)});
 
@@ -4056,6 +4084,26 @@ const handler = async (req: Request): Promise<Response> => {
                     JSON.stringify({error: "Falta información del TFM"}),
                     {
                         status: 400,
+                        headers: headers,
+                    }
+                );
+            }
+            
+            const currentDate = new Date();
+            if(currentDate.getMonth() + 1 < 9 && Number(curso.split(" ")[1].split("-")[0]) <= currentDate.getFullYear()){
+                return new Response(
+                    JSON.stringify({error: "No se puede calificar un TFM antes de que su curso empiece"}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+            else if(currentDate.getFullYear() >= (Number(curso.split(" ")[1].split("-")[1]) + 1)){
+                return new Response(
+                    JSON.stringify({error: `No se puede calificar un TFM ${currentDate.getFullYear() - Number(curso.split(" ")[1].split("-")[1]) + 1} años tarde`}),
+                    {
+                        status: 406,
                         headers: headers,
                     }
                 );
