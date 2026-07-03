@@ -8,7 +8,7 @@ export type AsignaturaDB = OptionalId<{
     curso: "1º" | "2º" | string,
     cursos_academicos: Asignatura_curso_DB[],
     creditos: number,
-    optatividad: "Obligatoria" | "Optitiva" | string,
+    optatividad: "Obligatoria" | "Optativa" | string,
     tipo: "Asignatura",
 }>
 
@@ -19,7 +19,7 @@ export type Asignatura = {
     cursos_academicos: Asignatura_curso[],
     creditos: number,
     titulacion: string,
-    optatividad: "Obligatoria" | "Optitiva" | string,
+    optatividad: "Obligatoria" | "Optativa" | string,
     tipo: "Asignatura",
 }
 
@@ -30,7 +30,7 @@ export type Asignatura_Short = {
     cursos_academicos: number,
     creditos: number,
     tipo: "Asignatura",
-    optatividad: "Obligatoria" | "Optitiva" | string,
+    optatividad: "Obligatoria" | "Optativa" | string,
 }
 
 export type Asignatura_curso_DB = {
