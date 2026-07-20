@@ -5,6 +5,7 @@ import { Administrativo_Short } from "../Personas/Administrativo.ts";
 import { Coordinador_Short } from "../Personas/Coordinador.ts";
 import { Profesor_Short } from "../Personas/Profesor.ts";
 import { Estudiante_Short } from "../Personas/Estudiante.ts";
+import { Practicas_Short } from "../Asignaturas/Practicas.ts";
 
 export type TitulacionDB = OptionalId<{
     nombre: string,
@@ -26,6 +27,7 @@ export type TitulacionDB = OptionalId<{
         creditos_optativos: number,
     },
     TFM: ObjectId,
+    practicas?: ObjectId,
     administrativos: ObjectId[],
     docentes: ObjectId[],
     alumnos: ObjectId[],
@@ -53,6 +55,7 @@ export type Titulacion = {
         creditos_optativos: number,
     },
     TFM: TFM_Block_Short,
+    practicas?: Practicas_Short,
     administrativos: Administrativo_Short[],
     docentes: (Coordinador_Short | Profesor_Short)[],
     alumnos: Estudiante_Short[],
