@@ -53,6 +53,8 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
 
+            const new_password = password.replaceAll(" ", "+");
+
             const email_validation = await Validate_Email(email);
 
             if(email_validation.status !== 200){
@@ -67,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
 
             const persona: (EstudianteDB | ProfesorDB | CoordinadorDB | AdministrativoDB | null) = await PersonasCollection.findOne({email: email});
 
-            if(!persona || Decrypt_Passwords(password) !== Decrypt_Passwords(persona.password!)){
+            if(!persona || Decrypt_Passwords(new_password) !== Decrypt_Passwords(persona.password!)){
                 return new Response(
                     JSON.stringify({error: `Email o contraseña equivocada`}),
                     {
@@ -2328,29 +2330,6 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
             else if(rol === "Coordinador"){
-                /*const docentes = await PersonasCollection.find({_id: {$in: titulacion_exists.docentes}}).toArray();
-                const docente_error = docentes.find((docente) => {
-                    if(docente.rol !== "Coordinador" && docente.rol !== "Coordinador general" && docente.rol !== "Profesor"){
-                        return docente;
-                    }
-                });
-
-                if(docente_error !== undefined){
-                    return new Response(
-                        JSON.stringify({error: `Se ha encontrado una persona con rol de ${docente_error.rol} en vez de uno con rol de Profesor o Coordinador`}),
-                        {
-                            status: 406,
-                            headers: headers,
-                        }
-                    );
-                }
-
-                const coordinador_exists = docentes.find((docente) => {
-                    if((docente.rol === "Coordinador" || docente.rol === "Coordinador general") && docente.universidad === universidad){
-                        return docente;
-                    }
-                });*/
-
                 if(!universidad || !password){
                     return new Response(
                         JSON.stringify({error: "Falta información de la persona"}),
