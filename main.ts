@@ -1342,7 +1342,7 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             );
         }
-        else if(path === "/curso_TFM"){
+        else if(path === "/cursos_TFM"){
             const titulacion = searchParams.get("titulacion");
 
             if(!titulacion){
@@ -2133,6 +2133,8 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             );
         }
+        else if(path === "/practicas"){}
+        else if(path === "/practicas/curso"){}
 	}
     else if(method === "POST"){
         if(path === "/persona"){
