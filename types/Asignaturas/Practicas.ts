@@ -33,10 +33,11 @@ export type Practicas_Curso_DB = {
     id: ObjectId,
     nombre: string,
     alumnos: ObjectId[],
-    calificaciones: {
+    practicas: {
         estudiante: ObjectId,
+        empresa?: string,
         nota: "Sin calificación" | number,
-    },
+    }[],
     tipo: "Curso Prácticas",
 }
 
@@ -44,9 +45,10 @@ export type Practicas_Curso = {
     id: string,
     nombre: string,
     alumnos: Estudiante_Short[],
-    calificaciones: {
+    practicas: {
         estudiante: Estudiante_Short,
+        empresa?: string,
         nota: "Sin calificación" | number,
-    },
+    }[],
     tipo: "Curso Prácticas",
 }
