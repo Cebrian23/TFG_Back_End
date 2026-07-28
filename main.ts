@@ -985,6 +985,92 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             );
         }
+        else if(path === "/convocatoria"){
+            const asignatura = searchParams.get("asignatura");
+            const curso = searchParams.get("curso");
+            const convocatoria = searchParams.get("curso");
+
+            if(!asignatura || !curso || !convocatoria){
+                return new Response(
+                    JSON.stringify({error: "Falta algún dato para hacer la búsqueda"}),
+                    {
+                        status: 400,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const asignatura_exists = await AsignaturasCollection.findOne({_id: new ObjectId(asignatura)});
+
+            if(!asignatura_exists){
+                return new Response(
+                    JSON.stringify({error: "Asignatura no encontrada"}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+            else if(asignatura_exists.tipo !== "Asignatura"){
+                return new Response(
+                    JSON.stringify({error: "Bloque de TFM encontrado en vez de una asignatura"}),
+                    {
+                        status: 406,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const curso_exists = asignatura_exists.cursos_academicos.find((cursito) => {
+                if(cursito.curso_academico === curso){
+                    return cursito;
+                }
+            });
+
+            if(curso_exists === undefined){
+                return new Response(
+                    JSON.stringify({error: `${curso} no encontrado en la asignatura ${asignatura_exists.nombre}`}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const alumnosDB = curso_exists.alumnos_ordinaria;
+
+            const alumnos_response = await Promise.all(alumnosDB.map(async (alumno) => await Transform_Alumno(alumno)));
+
+            const error = alumnos_response.find((response) => {
+                if(response.status !== 200){
+                    return response;
+                }
+            });
+
+            if(error !== undefined){
+                return new Response(
+                    JSON.stringify(await error.json()),
+                    {
+                        status: error.status,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const alumnos = await Promise.all(alumnos_response.map(async (response) => {
+                const data = await response.json();
+
+                return data;
+            }));
+
+            return new Response(
+                JSON.stringify(alumnos),
+                {
+                    status: 200,
+                    headers: headers,
+                }
+            );
+        }
         else if(path === "/asignaturas/nombres"){
             const titulacion: string | null = searchParams.get("titulacion");
 
@@ -1338,177 +1424,6 @@ const handler = async (req: Request): Promise<Response> => {
                 JSON.stringify({error: "Error al procesar"}),
                 {
                     status: 404,
-                    headers: headers,
-                }
-            );
-        }
-        else if(path === "/cursos_TFM"){
-            const titulacion = searchParams.get("titulacion");
-
-            if(!titulacion){
-                return new Response(
-                    JSON.stringify({error: "ID no encontrado"}),
-                    {
-                        status: 200,
-                        headers: headers,
-                    }
-                );
-            }
-
-            const titulacion_exists = await TitulacionesCollection.findOne({_id: new ObjectId(titulacion)});
-            
-            if(!titulacion_exists){
-                return new Response(
-                    JSON.stringify({error: "Titulación no encontrada"}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
-            }
-
-            const TFM_Block_exists = await AsignaturasCollection.findOne(titulacion_exists.TFM);
-
-            if(!TFM_Block_exists){
-                return new Response(
-                    JSON.stringify({error: "Bloque de TFMs no encontrado"}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
-            }
-            else if(TFM_Block_exists.tipo !== "Bloque TFMs"){
-                return new Response(
-                    JSON.stringify({error: "Asignatura encontrada en vez de un bloque de TFMs"}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
-            }
-
-            const cursosDB: TFM_Block_Curso_DB[] = [];
-            
-            TFM_Block_exists.cursos.forEach((curso) => {
-                const curso_split = curso.nombre.split(" ")[1].split("-");
-                const date = new Date();
-
-                if(date.getFullYear() === Number(curso_split[0]) || date.getFullYear() === Number(curso_split[1])){
-                    cursosDB.push(curso);
-                }
-            });
-
-            const cursos_transform = await Promise.all(cursosDB.map(async (curso) => await Transform_Curso_TFM(curso)));
-
-            const curso_error = cursos_transform.find((response) => {
-                if(response.status !== 200){
-                    return response;
-                }
-            });
-
-            if(curso_error !== undefined){
-                return new Response(
-                    JSON.stringify(await curso_error.json()),
-                    {
-                        status: curso_error.status,
-                        headers: headers,
-                    }
-                );
-            }
-
-            const cursos: TFM_Block_Curso[] = await Promise.all(cursos_transform.map(async (response) => await response.json()));
-
-            return new Response(
-                JSON.stringify(cursos),
-                {
-                    status: 200,
-                    headers: headers,
-                }
-            );
-        }
-        else if(path === "/convocatoria"){
-            const asignatura = searchParams.get("asignatura");
-            const curso = searchParams.get("curso");
-            const convocatoria = searchParams.get("curso");
-
-            if(!asignatura || !curso || !convocatoria){
-                return new Response(
-                    JSON.stringify({error: "Falta algún dato para hacer la búsqueda"}),
-                    {
-                        status: 400,
-                        headers: headers,
-                    }
-                );
-            }
-
-            const asignatura_exists = await AsignaturasCollection.findOne({_id: new ObjectId(asignatura)});
-
-            if(!asignatura_exists){
-                return new Response(
-                    JSON.stringify({error: "Asignatura no encontrada"}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
-            }
-            else if(asignatura_exists.tipo !== "Asignatura"){
-                return new Response(
-                    JSON.stringify({error: "Bloque de TFM encontrado en vez de una asignatura"}),
-                    {
-                        status: 406,
-                        headers: headers,
-                    }
-                );
-            }
-
-            const curso_exists = asignatura_exists.cursos_academicos.find((cursito) => {
-                if(cursito.curso_academico === curso){
-                    return cursito;
-                }
-            });
-
-            if(curso_exists === undefined){
-                return new Response(
-                    JSON.stringify({error: `${curso} no encontrado en la asignatura ${asignatura_exists.nombre}`}),
-                    {
-                        status: 404,
-                        headers: headers,
-                    }
-                );
-            }
-
-            const alumnosDB = curso_exists.alumnos_ordinaria;
-
-            const alumnos_response = await Promise.all(alumnosDB.map(async (alumno) => await Transform_Alumno(alumno)));
-
-            const error = alumnos_response.find((response) => {
-                if(response.status !== 200){
-                    return response;
-                }
-            });
-
-            if(error !== undefined){
-                return new Response(
-                    JSON.stringify(await error.json()),
-                    {
-                        status: error.status,
-                        headers: headers,
-                    }
-                );
-            }
-
-            const alumnos = await Promise.all(alumnos_response.map(async (response) => {
-                const data = await response.json();
-
-                return data;
-            }));
-
-            return new Response(
-                JSON.stringify(alumnos),
-                {
-                    status: 200,
                     headers: headers,
                 }
             );
@@ -2064,6 +1979,91 @@ const handler = async (req: Request): Promise<Response> => {
 
             return new Response(
                 JSON.stringify(bloque_data),
+                {
+                    status: 200,
+                    headers: headers,
+                }
+            );
+        }
+        else if(path === "/cursos_TFM"){
+            const titulacion = searchParams.get("titulacion");
+
+            if(!titulacion){
+                return new Response(
+                    JSON.stringify({error: "ID no encontrado"}),
+                    {
+                        status: 200,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const titulacion_exists = await TitulacionesCollection.findOne({_id: new ObjectId(titulacion)});
+            
+            if(!titulacion_exists){
+                return new Response(
+                    JSON.stringify({error: "Titulación no encontrada"}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const TFM_Block_exists = await AsignaturasCollection.findOne(titulacion_exists.TFM);
+
+            if(!TFM_Block_exists){
+                return new Response(
+                    JSON.stringify({error: "Bloque de TFMs no encontrado"}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+            else if(TFM_Block_exists.tipo !== "Bloque TFMs"){
+                return new Response(
+                    JSON.stringify({error: "Asignatura encontrada en vez de un bloque de TFMs"}),
+                    {
+                        status: 404,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const cursosDB: TFM_Block_Curso_DB[] = [];
+            
+            TFM_Block_exists.cursos.forEach((curso) => {
+                const curso_split = curso.nombre.split(" ")[1].split("-");
+                const date = new Date();
+
+                if(date.getFullYear() === Number(curso_split[0]) || date.getFullYear() === Number(curso_split[1])){
+                    cursosDB.push(curso);
+                }
+            });
+
+            const cursos_transform = await Promise.all(cursosDB.map(async (curso) => await Transform_Curso_TFM(curso)));
+
+            const curso_error = cursos_transform.find((response) => {
+                if(response.status !== 200){
+                    return response;
+                }
+            });
+
+            if(curso_error !== undefined){
+                return new Response(
+                    JSON.stringify(await curso_error.json()),
+                    {
+                        status: curso_error.status,
+                        headers: headers,
+                    }
+                );
+            }
+
+            const cursos: TFM_Block_Curso[] = await Promise.all(cursos_transform.map(async (response) => await response.json()));
+
+            return new Response(
+                JSON.stringify(cursos),
                 {
                     status: 200,
                     headers: headers,
@@ -3624,6 +3624,7 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             );
         }
+        else if(path === "/cursoPracticas"){}
         else if(path === "/curso/calificar_convocatoria"){
             const data = await req.json();
             const asignatura: string | undefined = data.asignatura;
