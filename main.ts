@@ -2855,7 +2855,7 @@ const handler = async (req: Request): Promise<Response> => {
             return new Response(
                 JSON.stringify(
                     {
-                        message: `Titulación exitosamente añadido`,
+                        message: `Titulación exitosamente añadida`,
                         id: insertedId,
                         TFM: TFM_Info.insertedId,
                     }
