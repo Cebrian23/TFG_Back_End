@@ -2920,7 +2920,7 @@ const handler = async (req: Request): Promise<Response> => {
             const asig_response = asignaturasDB.map((asigDB) => {
                 if(!asigDB){
                     return new Response(
-                        JSON.stringify({error: `Asignatura no encotrada`}),
+                        JSON.stringify({error: `Asignatura no encontrada`}),
                         {
                             status: 404,
                             headers: headers,
