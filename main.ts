@@ -3881,6 +3881,7 @@ const handler = async (req: Request): Promise<Response> => {
                                     JSON.stringify({error: `Error al actualizar las notas del alumno con email ${alumno.email}`}),
                                     {
                                         status: 404,
+                                        headers: headers,
                                     }
                                 );
                             }
@@ -3992,6 +3993,7 @@ const handler = async (req: Request): Promise<Response> => {
                                     JSON.stringify({error: `Error al actualizar las notas del alumno con email ${alumno.email}`}),
                                     {
                                         status: 404,
+                                        headers: headers,
                                     }
                                 );
                             }
