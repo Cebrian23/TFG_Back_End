@@ -3836,7 +3836,7 @@ const handler = async (req: Request): Promise<Response> => {
                                         asignatura: asignatura_exists._id,
                                         convocatoria_name: convocatoria,
                                         convocatoria_num: notaAlumno.convocatoria_num,
-                                        curso: curso,
+                                        curso: curso_exists.curso_academico,
                                         nota: notaAlumno.nota,
                                         tipo: "Asignatura",
                                     }
