@@ -3635,8 +3635,9 @@ const handler = async (req: Request): Promise<Response> => {
                 nota: "Sin calificar" | "No presentado" | number,
                 convocatoria_num: string,
             }[] | undefined = data.notas;
+            const academico: string | undefined = data.academico;
 
-            if(!asignatura || !curso || !convocatoria || !notas){
+            if(!asignatura || !curso || !convocatoria || !notas || !academico){
                 return new Response(
                     JSON.stringify({error: `Faltan datos para actualizar las notas de la convocatoria de la asignatura`}),
                     {
@@ -3646,8 +3647,8 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
             
-            const currentDate = new Date();
-            if(currentDate.getMonth() + 1 < 9 && Number(curso.split(" ")[1].split("-")[0]) <= currentDate.getFullYear()){
+            /*const currentDate = new Date();
+            if(currentDate.getMonth() + 1 < 9 && Number(academico.split(" ")[1].split("-")[0]) <= currentDate.getFullYear()){
                 return new Response(
                     JSON.stringify({error: "No se puede calificar una asingatura antes de que empiece"}),
                     {
@@ -3657,8 +3658,8 @@ const handler = async (req: Request): Promise<Response> => {
                 );
             }
             else if(
-                (currentDate.getMonth() + 1 >= 9 && Number(curso.split(" ")[1].split("-")[1]) === currentDate.getFullYear()) ||
-                (Number(curso.split(" ")[1].split("-")[1]) > currentDate.getFullYear())
+                (currentDate.getMonth() + 1 >= 9 && Number(academico.split(" ")[1].split("-")[1]) === currentDate.getFullYear()) ||
+                (Number(academico.split(" ")[1].split("-")[1]) > currentDate.getFullYear())
             ){
                 return new Response(
                     JSON.stringify({error: `No se puede calificar una asignatura una vez acabado el curso`}),
@@ -3667,7 +3668,7 @@ const handler = async (req: Request): Promise<Response> => {
                         headers: headers,
                     }
                 );
-            }
+            }*/
 
             const asignatura_exists = await AsignaturasCollection.findOne({_id: new ObjectId(asignatura)});
 
