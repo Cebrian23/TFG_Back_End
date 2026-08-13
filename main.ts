@@ -2907,7 +2907,7 @@ const handler = async (req: Request): Promise<Response> => {
                 }
             });
 
-            if(optatividad === "Obligatoria" && titulacion_exists.requisitos_TFM.creditos_obligatorios < (creditosOblig+creditos)){
+            if(optatividad === "Obligatoria" && !(titulacion_exists.requisitos_TFM.creditos_obligatorios > (creditosOblig+creditos))){
                 return new Response(
                     JSON.stringify({error: "No se puede añadir ninguna asignatura obligatoria más"}),
                     {
@@ -2920,7 +2920,7 @@ const handler = async (req: Request): Promise<Response> => {
             const asig_response = asignaturasDB.map((asigDB) => {
                 if(!asigDB){
                     return new Response(
-                        JSON.stringify({error: `Asignatura con no encotrada`}),
+                        JSON.stringify({error: `Asignatura no encotrada`}),
                         {
                             status: 404,
                             headers: headers,
@@ -2929,7 +2929,7 @@ const handler = async (req: Request): Promise<Response> => {
                 }
                 else if(asigDB.tipo !== "Asignatura"){
                     return new Response(
-                        JSON.stringify({error: `Bloque de TFM con id ${asigDB._id!.toString} encontrado`}),
+                        JSON.stringify({error: `Bloque de TFM con id ${asigDB._id!.toString()} encontrado`}),
                         {
                             status: 406,
                             headers: headers,
