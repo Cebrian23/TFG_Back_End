@@ -2918,16 +2918,7 @@ const handler = async (req: Request): Promise<Response> => {
             }
 
             const asig_response = asignaturasDB.map((asigDB) => {
-                if(!asigDB){
-                    return new Response(
-                        JSON.stringify({error: `Asignatura no encontrada`}),
-                        {
-                            status: 404,
-                            headers: headers,
-                        }
-                    );
-                }
-                else if(asigDB.tipo !== "Asignatura"){
+                if(asigDB !== null && asigDB.tipo !== "Asignatura"){
                     return new Response(
                         JSON.stringify({error: `Bloque de TFM con id ${asigDB._id!.toString()} encontrado`}),
                         {
@@ -2936,7 +2927,7 @@ const handler = async (req: Request): Promise<Response> => {
                         }
                     );
                 }
-                else if(asigDB.nombre === nombre){
+                else if(asigDB !== null && asigDB.nombre === nombre){
                     return new Response(
                         JSON.stringify({error: `${nombre} ya existe en la titulación`}),
                         {
