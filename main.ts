@@ -2868,7 +2868,6 @@ const handler = async (req: Request): Promise<Response> => {
         }
         else if(path === "/asignatura"){
             const data = await req.json();
-            console.log(data)
             const nombre: string | undefined = data.nombre;
             const titulacion: string | undefined = data.titulacion;
             const curso: string | undefined = data.curso;
